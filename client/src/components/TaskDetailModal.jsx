@@ -1,5 +1,6 @@
 import { STATUS_COLORS, PRIORITY_ICONS } from '../constants'
 import TaskForm from './TaskForm'
+import EffortBadge from './EffortBadge'
 import { useState } from 'react'
 
 export default function TaskDetailModal({ task, onClose, onSave, onDelete }) {
@@ -40,6 +41,7 @@ export default function TaskDetailModal({ task, onClose, onSave, onDelete }) {
                   <span className={`badge bg-${STATUS_COLORS[task.status] || 'secondary'}`}>{task.status}</span>
                   <span className={`badge owner-badge owner-${task.owner}`}>{task.owner}</span>
                   <span title={`Priority: ${task.priority}`}>{PRIORITY_ICONS[task.priority]} {task.priority}</span>
+                  <EffortBadge effort={task.estimated_token_effort} compact={false} />
                 </div>
 
                 {task.description && (

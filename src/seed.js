@@ -18,7 +18,8 @@ async function seed() {
       owner: 'norman',
       priority: 'high',
       github_url: '',
-      tags: 'heartbeat,agent-ops,reliability'
+      tags: 'heartbeat,agent-ops,reliability',
+      estimated_token_effort: 'medium'
     },
     {
       title: 'Agent coordination protocol — shared task awareness',
@@ -27,7 +28,8 @@ async function seed() {
       owner: 'team',
       priority: 'high',
       github_url: '',
-      tags: 'coordination,multi-agent,protocol'
+      tags: 'coordination,multi-agent,protocol',
+      estimated_token_effort: 'large'
     },
     {
       title: 'Build openclaw-dashboard REST API and frontend',
@@ -36,7 +38,8 @@ async function seed() {
       owner: 'norman',
       priority: 'high',
       github_url: 'https://github.com/glovario/openclaw-dashboard',
-      tags: 'dashboard,tooling,infrastructure'
+      tags: 'dashboard,tooling,infrastructure',
+      estimated_token_effort: 'large'
     },
     {
       title: 'Ada: implement email triage automation',
@@ -45,7 +48,8 @@ async function seed() {
       owner: 'ada',
       priority: 'medium',
       github_url: '',
-      tags: 'email,automation,ada'
+      tags: 'email,automation,ada',
+      estimated_token_effort: 'medium'
     },
     {
       title: 'Mason: GitHub PR review assistant',
@@ -54,7 +58,8 @@ async function seed() {
       owner: 'mason',
       priority: 'medium',
       github_url: '',
-      tags: 'github,pr-review,mason'
+      tags: 'github,pr-review,mason',
+      estimated_token_effort: 'medium'
     },
     {
       title: 'Atlas: system health monitoring dashboard widget',
@@ -63,7 +68,8 @@ async function seed() {
       owner: 'atlas',
       priority: 'medium',
       github_url: '',
-      tags: 'monitoring,system-health,atlas'
+      tags: 'monitoring,system-health,atlas',
+      estimated_token_effort: 'small'
     },
     {
       title: 'Bard: daily standup summary generation',
@@ -72,7 +78,8 @@ async function seed() {
       owner: 'bard',
       priority: 'low',
       github_url: '',
-      tags: 'standup,reporting,bard,telegram'
+      tags: 'standup,reporting,bard,telegram',
+      estimated_token_effort: 'small'
     },
     {
       title: 'MEMORY.md review and update cycle',
@@ -81,7 +88,8 @@ async function seed() {
       owner: 'team',
       priority: 'medium',
       github_url: '',
-      tags: 'memory,documentation,agent-ops'
+      tags: 'memory,documentation,agent-ops',
+      estimated_token_effort: 'medium'
     },
     {
       title: 'Dashboard: add authentication layer',
@@ -90,7 +98,8 @@ async function seed() {
       owner: 'matt',
       priority: 'medium',
       github_url: 'https://github.com/glovario/openclaw-dashboard',
-      tags: 'security,auth,dashboard'
+      tags: 'security,auth,dashboard',
+      estimated_token_effort: 'medium'
     },
     {
       title: 'Define agent capability registry',
@@ -99,15 +108,16 @@ async function seed() {
       owner: 'matt',
       priority: 'high',
       github_url: '',
-      tags: 'documentation,agent-ops,planning'
+      tags: 'documentation,agent-ops,planning',
+      estimated_token_effort: 'small'
     }
   ];
 
   for (const t of tasks) {
     insert(
-      `INSERT INTO tasks (title, description, status, owner, priority, github_url, tags)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [t.title, t.description, t.status, t.owner, t.priority, t.github_url, t.tags]
+      `INSERT INTO tasks (title, description, status, owner, priority, github_url, tags, estimated_token_effort)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [t.title, t.description, t.status, t.owner, t.priority, t.github_url, t.tags, t.estimated_token_effort]
     );
   }
 

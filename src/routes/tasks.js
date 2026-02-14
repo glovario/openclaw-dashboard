@@ -4,13 +4,14 @@ const db = require('../db');
 
 // GET /api/tasks — list all, with optional filters
 router.get('/', async (req, res) => {
-  const { status, owner, priority, search } = req.query;
+  const { status, owner, priority, search, estimated_token_effort } = req.query;
   let sql = 'SELECT * FROM tasks WHERE 1=1';
   const params = [];
 
   if (status)   { sql += ' AND status = ?';   params.push(status); }
   if (owner)    { sql += ' AND owner = ?';    params.push(owner); }
   if (priority) { sql += ' AND priority = ?'; params.push(priority); }
+  if (estimated_token_effort) { sql += ' AND estimated_token_effort = ?'; params.push(estimated_token_effort); }
   if (search)   {
     sql += ' AND (title LIKE ? OR description LIKE ? OR tags LIKE ?)';
     const s = `%${search}%`;
@@ -43,24 +44,28 @@ router.get('/:id', async (req, res) => {
 // POST /api/tasks
 router.post('/', async (req, res) => {
   const { title, description = '', status = 'backlog', owner = 'matt',
-          priority = 'medium', github_url = '', tags = '' } = req.body;
+          priority = 'medium', github_url = '', tags = '',
+          estimated_token_effort } = req.body;
 
   if (!title) return res.status(400).json({ ok: false, error: 'title is required' });
+  if (!estimated_token_effort) return res.status(400).json({ ok: false, error: 'estimated_token_effort is required (small | medium | large)' });
 
   const validStatus   = ['backlog','in-progress','review','done'];
   const validOwner    = ['norman','ada','mason','atlas','bard','matt','team'];
   const validPriority = ['low','medium','high'];
+  const validEffort   = ['small','medium','large'];
 
-  if (!validStatus.includes(status))     return res.status(400).json({ ok: false, error: 'Invalid status' });
-  if (!validOwner.includes(owner))       return res.status(400).json({ ok: false, error: 'Invalid owner' });
-  if (!validPriority.includes(priority)) return res.status(400).json({ ok: false, error: 'Invalid priority' });
+  if (!validStatus.includes(status))               return res.status(400).json({ ok: false, error: 'Invalid status' });
+  if (!validOwner.includes(owner))                 return res.status(400).json({ ok: false, error: 'Invalid owner' });
+  if (!validPriority.includes(priority))           return res.status(400).json({ ok: false, error: 'Invalid priority' });
+  if (!validEffort.includes(estimated_token_effort)) return res.status(400).json({ ok: false, error: 'Invalid estimated_token_effort' });
 
   try {
     await db.getDb();
     const id = db.insert(
-      `INSERT INTO tasks (title, description, status, owner, priority, github_url, tags)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [title, description, status, owner, priority, github_url, tags]
+      `INSERT INTO tasks (title, description, status, owner, priority, github_url, tags, estimated_token_effort)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [title, description, status, owner, priority, github_url, tags, estimated_token_effort]
     );
     const task = db.get('SELECT * FROM tasks WHERE id = ?', [id]);
     res.status(201).json({ ok: true, task });
@@ -71,7 +76,7 @@ router.post('/', async (req, res) => {
 
 // PATCH /api/tasks/:id
 router.patch('/:id', async (req, res) => {
-  const allowed = ['title','description','status','owner','priority','github_url','tags'];
+  const allowed = ['title','description','status','owner','priority','github_url','tags','estimated_token_effort'];
   const updates = Object.keys(req.body).filter(k => allowed.includes(k));
 
   if (!updates.length) return res.status(400).json({ ok: false, error: 'No valid fields' });
