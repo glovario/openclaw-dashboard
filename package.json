@@ -1,0 +1,16 @@
+{
+  "name": "openclaw-dashboard",
+  "version": "1.0.0",
+  "description": "Collaborative task dashboard for the OpenClaw agent team",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "seed": "node src/seed.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "express-basic-auth": "^1.2.1",
+    "sql.js": "^1.11.0"
+  }
+}

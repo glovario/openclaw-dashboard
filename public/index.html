@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OpenClaw Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <div class="header-inner">
+      <div class="logo">🐾 OpenClaw Dashboard</div>
+      <button class="btn btn-primary" id="newTaskBtn">+ New Task</button>
+    </div>
+    <div class="filters">
+      <input type="search" id="searchInput" placeholder="Search tasks…" autocomplete="off">
+      <select id="filterStatus">
+        <option value="">All status</option>
+        <option value="backlog">Backlog</option>
+        <option value="in-progress">In Progress</option>
+        <option value="review">Review</option>
+        <option value="done">Done</option>
+      </select>
+      <select id="filterOwner">
+        <option value="">All owners</option>
+        <option value="matt">Matt</option>
+        <option value="norman">Norman</option>
+        <option value="ada">Ada</option>
+        <option value="mason">Mason</option>
+        <option value="atlas">Atlas</option>
+        <option value="bard">Bard</option>
+        <option value="team">Team</option>
+      </select>
+      <select id="filterPriority">
+        <option value="">All priority</option>
+        <option value="high">High</option>
+        <option value="medium">Medium</option>
+        <option value="low">Low</option>
+      </select>
+    </div>
+  </header>
+
+  <main>
+    <div id="taskList" class="task-list"></div>
+    <div id="emptyState" class="empty-state hidden">
+      <div class="empty-icon">📋</div>
+      <p>No tasks found</p>
+    </div>
+  </main>
+
+  <!-- Task Modal -->
+  <div id="modal" class="modal hidden" role="dialog" aria-modal="true">
+    <div class="modal-backdrop" id="modalBackdrop"></div>
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="modalTitle">New Task</h2>
+        <button class="modal-close" id="modalClose" aria-label="Close">✕</button>
+      </div>
+      <form id="taskForm" autocomplete="off">
+        <input type="hidden" id="taskId">
+        <div class="form-group">
+          <label for="fTitle">Title *</label>
+          <input type="text" id="fTitle" required placeholder="What needs doing?">
+        </div>
+        <div class="form-group">
+          <label for="fDescription">Description</label>
+          <textarea id="fDescription" rows="3" placeholder="Details, context, links…"></textarea>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="fStatus">Status</label>
+            <select id="fStatus">
+              <option value="backlog">Backlog</option>
+              <option value="in-progress">In Progress</option>
+              <option value="review">Review</option>
+              <option value="done">Done</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="fOwner">Owner</label>
+            <select id="fOwner">
+              <option value="matt">Matt</option>
+              <option value="norman">Norman</option>
+              <option value="ada">Ada</option>
+              <option value="mason">Mason</option>
+              <option value="atlas">Atlas</option>
+              <option value="bard">Bard</option>
+              <option value="team">Team</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="fPriority">Priority</label>
+            <select id="fPriority">
+              <option value="low">Low</option>
+              <option value="medium" selected>Medium</option>
+              <option value="high">High</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="fGithubUrl">GitHub URL</label>
+          <input type="url" id="fGithubUrl" placeholder="https://github.com/…">
+        </div>
+        <div class="form-group">
+          <label for="fTags">Tags <span class="hint">(comma-separated)</span></label>
+          <input type="text" id="fTags" placeholder="e.g. api,frontend,urgent">
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-danger hidden" id="deleteBtn">Delete</button>
+          <button type="button" class="btn btn-ghost" id="cancelBtn">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="saveBtn">Save Task</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
