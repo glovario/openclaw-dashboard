@@ -1,120 +1,146 @@
-import React, { useState, useCallback, useEffect } from 'react';
-import { useTasks } from './hooks/useTasks';
-import TaskCard from './components/TaskCard';
-import TaskModal from './components/TaskModal';
-import FilterBar from './components/FilterBar';
-import StatsBar from './components/StatsBar';
-
-const EMPTY_FILTERS = { status: '', owner: '', priority: '', search: '' };
+import { useState, useEffect, useCallback } from 'react'
+import { fetchTasks, createTask, updateTask, deleteTask } from './api'
+import FilterBar from './components/FilterBar'
+import TaskCard from './components/TaskCard'
+import TaskDetailModal from './components/TaskDetailModal'
+import AddTaskModal from './components/AddTaskModal'
 
 export default function App() {
-  const [filters, setFilters]       = useState(EMPTY_FILTERS);
-  const [debouncedFilters, setDebouncedFilters] = useState(EMPTY_FILTERS);
-  const [modalTask, setModalTask]   = useState(null);  // null=closed, {}=new, {...}=edit
-  const [modalOpen, setModalOpen]   = useState(false);
+  const [tasks, setTasks] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const [filters, setFilters] = useState({})
+  const [selected, setSelected] = useState(null)
+  const [showAdd, setShowAdd] = useState(false)
 
-  // Debounce search
-  useEffect(() => {
-    const t = setTimeout(() => setDebouncedFilters(filters), 260);
-    return () => clearTimeout(t);
-  }, [filters]);
-
-  const { tasks, loading, error, createTask, updateTask, deleteTask } =
-    useTasks(debouncedFilters);
-
-  const openNew  = () => { setModalTask(null); setModalOpen(true); };
-  const openEdit = (task) => { setModalTask(task); setModalOpen(true); };
-  const closeModal = () => setModalOpen(false);
-
-  const handleSave = useCallback(async (form) => {
-    const { id, created_at, updated_at, ...body } = form;
-    if (modalTask?.id) {
-      await updateTask(modalTask.id, body);
-    } else {
-      await createTask(body);
+  const loadTasks = useCallback(async (f = filters) => {
+    setLoading(true)
+    setError(null)
+    try {
+      const data = await fetchTasks(f)
+      setTasks(data)
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setLoading(false)
     }
-  }, [modalTask, createTask, updateTask]);
+  }, [filters])
 
-  const handleDelete = useCallback(async (id) => {
-    await deleteTask(id);
-  }, [deleteTask]);
+  useEffect(() => { loadTasks(filters) }, [filters])
 
-  // Keyboard shortcut: N = new task (when modal is closed)
-  useEffect(() => {
-    const handler = (e) => {
-      if (modalOpen) return;
-      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-      if (e.key === 'n' || e.key === 'N') openNew();
-    };
-    document.addEventListener('keydown', handler);
-    return () => document.removeEventListener('keydown', handler);
-  }, [modalOpen]);
+  const handleFiltersChange = (f) => setFilters(f)
+  const handleClearFilters = () => setFilters({})
+
+  const handleAddSave = async (form) => {
+    await createTask(form)
+    setShowAdd(false)
+    loadTasks(filters)
+  }
+
+  const handleTaskSave = async (id, patch) => {
+    const updated = await updateTask(id, patch)
+    setTasks(ts => ts.map(t => t.id === id ? updated : t))
+    setSelected(updated)
+  }
+
+  const handleTaskDelete = async (id) => {
+    await deleteTask(id)
+    setSelected(null)
+    setTasks(ts => ts.filter(t => t.id !== id))
+  }
+
+  const counts = {
+    backlog:      tasks.filter(t => t.status === 'backlog').length,
+    'in-progress': tasks.filter(t => t.status === 'in-progress').length,
+    review:       tasks.filter(t => t.status === 'review').length,
+    done:         tasks.filter(t => t.status === 'done').length,
+  }
 
   return (
-    <div className="d-flex flex-column min-vh-100">
-      {/* ── Navbar ── */}
-      <nav className="navbar navbar-dark sticky-top">
-        <div className="container-fluid px-3">
-          <span className="navbar-brand fw-bold mb-0">
-            🐾 OpenClaw Dashboard
-          </span>
-          <button
-            className="btn btn-primary btn-sm"
-            onClick={openNew}
-            title="New task (N)"
-          >
-            <i className="bi bi-plus-lg me-1" />
-            New Task
+    <>
+      <nav className="navbar navbar-dark bg-dark mb-4">
+        <div className="container-fluid">
+          <span className="navbar-brand">🐾 OpenClaw Dashboard</span>
+          <button className="btn btn-primary btn-sm" onClick={() => setShowAdd(true)}>
+            + New task
           </button>
         </div>
       </nav>
 
-      {/* ── Filters ── */}
-      <FilterBar filters={filters} onChange={setFilters} />
+      <div className="container-xl pb-5">
+        {/* Summary row */}
+        <div className="row g-3 mb-4">
+          {[
+            { label: 'Backlog',     key: 'backlog',      color: 'secondary' },
+            { label: 'In Progress', key: 'in-progress',  color: 'primary'   },
+            { label: 'Review',      key: 'review',       color: 'warning'   },
+            { label: 'Done',        key: 'done',         color: 'success'   },
+          ].map(({ label, key, color }) => (
+            <div key={key} className="col-6 col-md-3">
+              <div
+                className={`card text-bg-${color} h-100`}
+                style={{ cursor: 'pointer' }}
+                onClick={() => setFilters(f => ({ ...f, status: f.status === key ? '' : key }))}
+              >
+                <div className="card-body py-3 text-center">
+                  <div className="display-6 fw-bold">{counts[key]}</div>
+                  <div className="small">{label}</div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
 
-      {/* ── Stats bar ── */}
-      {!loading && !error && <StatsBar tasks={tasks} />}
-
-      {/* ── Main ── */}
-      <main className="flex-grow-1 container-fluid px-3 py-3" style={{ maxWidth: 860 }}>
-        {loading && (
-          <div className="text-center py-5 text-secondary">
-            <div className="spinner-border mb-3" />
-            <p>Loading tasks…</p>
-          </div>
-        )}
+        <FilterBar
+          filters={filters}
+          onChange={handleFiltersChange}
+          onClear={handleClearFilters}
+        />
 
         {error && (
           <div className="alert alert-danger">
-            <i className="bi bi-exclamation-triangle me-2" />
-            {error}
+            Error: {error}{' '}
+            <button className="btn btn-sm btn-outline-danger ms-2" onClick={() => loadTasks()}>Retry</button>
           </div>
         )}
 
-        {!loading && !error && tasks.length === 0 && (
-          <div className="text-center py-5 text-secondary">
-            <div className="empty-icon mb-3">📋</div>
-            <p className="mb-3">No tasks found</p>
-            <button className="btn btn-outline-primary" onClick={openNew}>
-              <i className="bi bi-plus-lg me-1" />Create first task
-            </button>
+        {loading ? (
+          <div className="text-center py-5">
+            <div className="spinner-border text-primary" role="status" />
+            <div className="mt-2 text-muted">Loading tasks…</div>
+          </div>
+        ) : tasks.length === 0 ? (
+          <div className="text-center py-5 text-muted">
+            <div style={{ fontSize: '3rem' }}>📋</div>
+            <div>No tasks found.</div>
+            <button className="btn btn-outline-primary mt-2" onClick={() => setShowAdd(true)}>Add the first task</button>
+          </div>
+        ) : (
+          <div className="row g-0">
+            {tasks.map(task => (
+              <div key={task.id} className="col-12 col-lg-6 col-xl-4 px-2">
+                <TaskCard task={task} onClick={setSelected} />
+              </div>
+            ))}
           </div>
         )}
+      </div>
 
-        {!loading && !error && tasks.map(task => (
-          <TaskCard key={task.id} task={task} onClick={openEdit} />
-        ))}
-      </main>
-
-      {/* ── Modal ── */}
-      {modalOpen && (
-        <TaskModal
-          task={modalTask}
-          onSave={handleSave}
-          onDelete={handleDelete}
-          onClose={closeModal}
+      {selected && (
+        <TaskDetailModal
+          task={selected}
+          onClose={() => setSelected(null)}
+          onSave={handleTaskSave}
+          onDelete={handleTaskDelete}
         />
       )}
-    </div>
-  );
+
+      {showAdd && (
+        <AddTaskModal
+          onClose={() => setShowAdd(false)}
+          onSave={handleAddSave}
+        />
+      )}
+    </>
+  )
 }

@@ -1,68 +1,42 @@
-import React from 'react';
-import StatusBadge from './StatusBadge';
-import OwnerBadge from './OwnerBadge';
+import { STATUS_COLORS, PRIORITY_ICONS } from '../constants'
 
 export default function TaskCard({ task, onClick }) {
-  const tags = task.tags
-    ? task.tags.split(',').map(t => t.trim()).filter(Boolean)
-    : [];
+  const tags = task.tags ? task.tags.split(',').map(t => t.trim()).filter(Boolean) : []
 
   return (
     <div
-      className="card task-card bg-card mb-3"
+      className={`card task-card mb-3 priority-${task.priority}`}
       onClick={() => onClick(task)}
       role="button"
       tabIndex={0}
       onKeyDown={e => e.key === 'Enter' && onClick(task)}
     >
-      <div className="card-body py-3 px-3">
-        {/* Header row */}
-        <div className="d-flex align-items-start gap-2 mb-2">
-          <span
-            className={`priority-dot priority-dot ${task.priority} mt-1`}
-            title={`Priority: ${task.priority}`}
-          />
-          <h6 className={`card-title mb-0 flex-grow-1 ${task.status === 'done' ? 'done-text' : ''}`}>
-            {task.title}
-          </h6>
-        </div>
-
-        {/* Badges */}
-        <div className="d-flex flex-wrap gap-1 mb-2">
-          <StatusBadge status={task.status} />
-          <OwnerBadge owner={task.owner} />
-          <span className={`badge bg-secondary`}>
-            <i className={`bi bi-arrow-up-circle${task.priority === 'high' ? '-fill' : ''} me-1`} />
-            {task.priority}
-          </span>
-        </div>
-
-        {/* Description */}
-        {task.description && (
-          <p className="task-desc mb-2">{task.description}</p>
-        )}
-
-        {/* Tags + GitHub */}
-        {(tags.length > 0 || task.github_url) && (
-          <div className="d-flex flex-wrap gap-1 align-items-center">
-            {tags.map(tag => (
-              <span key={tag} className="tag-pill">{tag}</span>
-            ))}
-            {task.github_url && (
-              <a
-                href={task.github_url}
-                className="tag-pill text-decoration-none"
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={e => e.stopPropagation()}
-              >
-                <i className="bi bi-github me-1" />
-                GitHub
-              </a>
+      <div className="card-body py-3">
+        <div className="d-flex align-items-start justify-content-between gap-2">
+          <div className="flex-grow-1 min-w-0">
+            <h6 className="card-title mb-1 text-truncate">{task.title}</h6>
+            {task.description && (
+              <p className="card-text text-muted small mb-2 text-truncate">{task.description}</p>
             )}
+            <div className="d-flex flex-wrap gap-1 align-items-center">
+              <span className={`badge status-badge bg-${STATUS_COLORS[task.status] || 'secondary'}`}>
+                {task.status}
+              </span>
+              <span className={`badge owner-badge owner-${task.owner}`}>
+                {task.owner}
+              </span>
+              <span className="text-muted small" title={`Priority: ${task.priority}`}>
+                {PRIORITY_ICONS[task.priority]}
+              </span>
+              {tags.map(tag => (
+                <span key={tag} className="badge rounded-pill bg-light text-dark border tag-pill">
+                  {tag}
+                </span>
+              ))}
+            </div>
           </div>
-        )}
+        </div>
       </div>
     </div>
-  );
+  )
 }

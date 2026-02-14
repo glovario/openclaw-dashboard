@@ -112,3 +112,30 @@ sudo systemctl enable --now openclaw-dashboard
 7. **Expose on LAN** — Confirm the machine IP and bookmark `http://<ip>:3420` on Matt's phone
 
 8. **Mason PR linking** — When Mason opens a PR, have it auto-create or update a dashboard task with the GitHub URL
+
+---
+
+## 2026-02-14 — React + Bootstrap 5 frontend rebuild
+
+Rebuilt the frontend from scratch as a proper React 18 + Bootstrap 5 SPA (Vite build tooling). All backend code (Express, sql.js, routes) is unchanged.
+
+### What changed
+- Created `client/` directory with a Vite + React project
+- Installed Bootstrap 5 (via npm, not CDN)
+- Built the app into `public/` which the Express backend already serves as static files
+- Dev workflow: `npm run dev:server` (port 3420) + `npm run dev:client` (port 5173 with API proxy)
+
+### Components
+- `App.jsx` — main app, state, data fetching, modal orchestration
+- `FilterBar.jsx` — search + dropdowns for status/owner/priority
+- `TaskCard.jsx` — card with priority border, status badge, owner colour badge, tags
+- `TaskDetailModal.jsx` — full detail view, quick-status buttons, GitHub link, edit/delete
+- `AddTaskModal.jsx` — wrapper around TaskForm for new tasks
+- `TaskForm.jsx` — controlled form for create/edit
+- `api.js` — thin fetch wrapper for all REST calls
+- `constants.js` — shared status/owner/priority config
+
+### Styling
+- CSS custom properties for each owner's colour
+- Priority indicated by left border colour (red/yellow/green)
+- Bootstrap responsive grid: 1 col mobile, 2 col large, 3 col XL
