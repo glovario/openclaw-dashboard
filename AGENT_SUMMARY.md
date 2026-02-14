@@ -13,7 +13,9 @@ A full-stack collaborative task dashboard for the OpenClaw agent team (Norman, A
 ### Stack
 - **Backend:** Node.js 18 + Express
 - **Database:** SQLite via `sql.js` (pure WASM — no native compilation required, works on any Node version)
-- **Frontend:** Vanilla HTML/CSS/JS — mobile-first dark UI
+- **Frontend:** React 18 + Vite + Bootstrap 5 (dark theme) — mobile-first SPA
+- **Build:** `npm run build` in `client/` → output to `public/`, served by Express
+- **Dev:** `npm run dev:client` (Vite on :5173, proxies `/api` to Express) + `npm run dev:server`
 - **API:** REST — all agents can create/read/update/delete tasks programmatically
 
 ### Features
