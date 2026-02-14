@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react'
-import { STATUSES, OWNERS, PRIORITIES } from '../constants'
+import { STATUSES, OWNERS, PRIORITIES, EFFORTS, EFFORT_META } from '../constants'
 
 const DEFAULTS = {
   title: '', description: '', status: 'backlog',
-  owner: 'matt', priority: 'medium', github_url: '', tags: ''
+  owner: 'matt', priority: 'medium',
+  estimated_token_effort: '',   // intentionally blank → forces user to choose
+  github_url: '', tags: ''
 }
 
 export default function TaskForm({ task, onSave, onCancel }) {
@@ -20,7 +22,8 @@ export default function TaskForm({ task, onSave, onCancel }) {
 
   const handleSubmit = async e => {
     e.preventDefault()
-    if (!form.title.trim()) { setError('Title is required'); return }
+    if (!form.title.trim())              { setError('Title is required'); return }
+    if (!form.estimated_token_effort)    { setError('Token effort estimate is required'); return }
     setSaving(true)
     setError(null)
     try {
@@ -82,6 +85,36 @@ export default function TaskForm({ task, onSave, onCancel }) {
       </div>
 
       <div className="mb-3">
+        <label className="form-label fw-semibold">
+          Token Effort *{' '}
+          <span className="text-muted fw-normal small">— how many tokens will this take?</span>
+        </label>
+        <div className="d-flex gap-2 flex-wrap">
+          {EFFORTS.map(e => {
+            const meta = EFFORT_META[e]
+            const selected = form.estimated_token_effort === e
+            return (
+              <button
+                key={e}
+                type="button"
+                className={`btn btn-${selected ? meta.color : 'outline-' + meta.color} ${meta.color === 'warning' && selected ? 'text-dark' : ''}`}
+                onClick={() => set('estimated_token_effort', e)}
+                title={meta.title}
+              >
+                ⚡ {e.charAt(0).toUpperCase() + e.slice(1)}
+                <span className="d-none d-sm-inline text-opacity-75 ms-1" style={{ fontSize: '0.75em' }}>
+                  {e === 'small' ? '(<2k)' : e === 'medium' ? '(2k–8k)' : '(8k+)'}
+                </span>
+              </button>
+            )
+          })}
+        </div>
+        {!form.estimated_token_effort && (
+          <div className="form-text text-danger">Required — select a tier above.</div>
+        )}
+      </div>
+
+      <div className="mb-3">
         <label className="form-label fw-semibold">GitHub URL</label>
         <input
           className="form-control"
@@ -93,7 +126,10 @@ export default function TaskForm({ task, onSave, onCancel }) {
       </div>
 
       <div className="mb-4">
-        <label className="form-label fw-semibold">Tags <span className="text-muted fw-normal">(comma-separated)</span></label>
+        <label className="form-label fw-semibold">
+          Tags{' '}
+          <span className="text-muted fw-normal">(comma-separated)</span>
+        </label>
         <input
           className="form-control"
           value={form.tags}

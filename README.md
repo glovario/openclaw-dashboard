@@ -55,7 +55,7 @@ This runs `vite build` inside `client/` and writes the output to `public/`, wher
 
 - **Task list** with status badges, owner colour tags, and priority indicators (red/yellow/green border)
 - **Summary stats** row — click a status card to filter by it
-- **Filters** by status, owner, priority, and free-text search
+- **Filters** by status, owner, priority, token effort, and free-text search
 - **Add / edit tasks** via a modal form
 - **Task detail modal** with quick status buttons and GitHub URL link
 - **Delete** tasks from the detail modal
@@ -69,7 +69,7 @@ All routes under `/api/tasks`:
 
 | Method | Path | Description |
 |--------|------|-------------|
-| GET    | /api/tasks | List tasks (filters: status, owner, priority, search) |
+| GET    | /api/tasks | List tasks (filters: status, owner, priority, estimated_token_effort, search) |
 | POST   | /api/tasks | Create task |
 | GET    | /api/tasks/:id | Get single task |
 | PATCH  | /api/tasks/:id | Update task fields |
@@ -94,3 +94,14 @@ All routes under `/api/tasks`:
 | status | backlog · in-progress · review · done |
 | owner | norman · ada · mason · atlas · bard · matt · team |
 | priority | high · medium · low |
+| estimated_token_effort | small (<2,000 tokens) · medium (2,000–8,000) · large (8,000+) — **required** at creation |
+
+### Token Effort Guidance
+
+Estimate the total tokens (input + output) expected to complete the task under normal conditions:
+
+| Tier | Token Range | Use when… |
+|------|------------|-----------|
+| `small` | < 2,000 | Simple queries, status updates, short summaries |
+| `medium` | 2,000–8,000 | Feature implementation, analysis tasks, moderate research |
+| `large` | 8,000+ | Complex refactors, multi-file changes, deep research |

@@ -23,18 +23,24 @@ async function getDb() {
   // Enable WAL-like behaviour (sql.js is in-memory, we persist on write)
   _db.run(`
     CREATE TABLE IF NOT EXISTS tasks (
-      id          INTEGER PRIMARY KEY AUTOINCREMENT,
-      title       TEXT NOT NULL,
-      description TEXT DEFAULT '',
-      status      TEXT NOT NULL DEFAULT 'backlog',
-      owner       TEXT NOT NULL DEFAULT 'matt',
-      priority    TEXT NOT NULL DEFAULT 'medium',
-      github_url  TEXT DEFAULT '',
-      tags        TEXT DEFAULT '',
-      created_at  TEXT NOT NULL DEFAULT (datetime('now')),
-      updated_at  TEXT NOT NULL DEFAULT (datetime('now'))
+      id                      INTEGER PRIMARY KEY AUTOINCREMENT,
+      title                   TEXT NOT NULL,
+      description             TEXT DEFAULT '',
+      status                  TEXT NOT NULL DEFAULT 'backlog',
+      owner                   TEXT NOT NULL DEFAULT 'matt',
+      priority                TEXT NOT NULL DEFAULT 'medium',
+      github_url              TEXT DEFAULT '',
+      tags                    TEXT DEFAULT '',
+      estimated_token_effort  TEXT NOT NULL DEFAULT 'medium',
+      created_at              TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at              TEXT NOT NULL DEFAULT (datetime('now'))
     )
   `);
+
+  // Migration: add column to existing DBs that predate this field
+  try {
+    _db.run(`ALTER TABLE tasks ADD COLUMN estimated_token_effort TEXT NOT NULL DEFAULT 'medium'`);
+  } catch (_) { /* column already exists — safe to ignore */ }
 
   persist();
   return _db;

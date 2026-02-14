@@ -1,4 +1,4 @@
-import { STATUSES, OWNERS, PRIORITIES } from '../constants'
+import { STATUSES, OWNERS, PRIORITIES, EFFORTS } from '../constants'
 
 export default function FilterBar({ filters, onChange, onClear }) {
   const set = (key, val) => onChange({ ...filters, [key]: val })
@@ -30,6 +30,12 @@ export default function FilterBar({ filters, onChange, onClear }) {
         <select className="form-select" value={filters.priority || ''} onChange={e => set('priority', e.target.value)}>
           <option value="">All priorities</option>
           {PRIORITIES.map(p => <option key={p} value={p}>{p}</option>)}
+        </select>
+      </div>
+      <div className="col-6 col-sm-3 col-md-2">
+        <select className="form-select" value={filters.effort || ''} onChange={e => set('effort', e.target.value)}>
+          <option value="">All effort</option>
+          {EFFORTS.map(e => <option key={e} value={e}>⚡ {e}</option>)}
         </select>
       </div>
       <div className="col-6 col-sm-3 col-md-auto">

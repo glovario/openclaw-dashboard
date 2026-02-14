@@ -139,3 +139,59 @@ Rebuilt the frontend from scratch as a proper React 18 + Bootstrap 5 SPA (Vite b
 - CSS custom properties for each owner's colour
 - Priority indicated by left border colour (red/yellow/green)
 - Bootstrap responsive grid: 1 col mobile, 2 col large, 3 col XL
+
+---
+
+## 2026-02-14 — Feature: Token Effort Estimation (Issue #1)
+
+**Agent:** Norman (subagent session `dashboard-issue-1`)
+
+### What was done
+Implemented the `estimated_token_effort` field across the full stack:
+
+**Backend (already partially in place from previous work):**
+- `src/db.js` — schema includes `estimated_token_effort TEXT NOT NULL DEFAULT 'medium'` with migration guard
+- `src/routes/tasks.js` — POST requires the field; GET supports filtering by it
+- `src/seed.js` — all 10 seed tasks now have explicit effort values
+
+**Frontend:**
+- `constants.js` — `TOKEN_EFFORTS`, `EFFORT_COLORS`, `EFFORT_LABELS` exported
+- `TaskCard.jsx` — colour-coded ⚡ effort badge (green=small, yellow=medium, red=large)
+- `TaskDetailModal.jsx` — effort badge in metadata row
+- `TaskForm.jsx` — required Token Effort dropdown with helper text
+- `FilterBar.jsx` — Token Effort filter select
+- `api.js` — passes `estimated_token_effort` filter to API
+
+**Docs:** README updated with feature description, API filter param, and tier guidance table.
+
+**PR:** https://github.com/glovario/openclaw-dashboard/pull/2 (branch: `feature/token-effort-estimation`)
+
+---
+
+## 2026-02-14 — Feature: Token Effort Estimation (issue #1)
+
+Implemented GitHub issue #1 — Token Effort Estimation per Task.
+
+### Backend changes
+- `db.js`: Added `estimated_token_effort TEXT NOT NULL DEFAULT 'medium'` column to schema; added `ALTER TABLE` migration for pre-existing DBs (catches duplicate-column error safely)
+- `routes/tasks.js`:
+  - POST: `estimated_token_effort` is **required** — 400 if missing; validated against `['small','medium','large']`
+  - GET: added `estimated_token_effort` filter param
+  - PATCH: `estimated_token_effort` added to allowed update fields
+- `seed.js`: All 10 seed tasks now include `estimated_token_effort` with reasoning comments
+
+### Frontend changes
+- `constants.js`: Added `EFFORTS` array and `EFFORT_META` map (label, Bootstrap colour, tooltip text, full label)
+- New `EffortBadge.jsx`: compact (`⚡S/M/L`) and full (`⚡ Medium (2k–8k)`) variants
+- `TaskCard.jsx`: compact `EffortBadge` in the badge row
+- `TaskDetailModal.jsx`: full `EffortBadge` in the detail header
+- `TaskForm.jsx`: segmented button group (Small/Medium/Large) — required, highlights invalid if not set
+- `FilterBar.jsx`: added ⚡ effort dropdown filter
+- `api.js`: maps `filters.effort` → `estimated_token_effort` query param
+
+### Tiers
+| Tier   | Tokens      | Badge colour |
+|--------|-------------|--------------|
+| Small  | < 2,000     | Green        |
+| Medium | 2,000–8,000 | Yellow       |
+| Large  | 8,000+      | Red          |

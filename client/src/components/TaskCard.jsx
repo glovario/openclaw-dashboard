@@ -1,4 +1,5 @@
 import { STATUS_COLORS, PRIORITY_ICONS } from '../constants'
+import EffortBadge from './EffortBadge'
 
 export default function TaskCard({ task, onClick }) {
   const tags = task.tags ? task.tags.split(',').map(t => t.trim()).filter(Boolean) : []
@@ -28,6 +29,7 @@ export default function TaskCard({ task, onClick }) {
               <span className="text-muted small" title={`Priority: ${task.priority}`}>
                 {PRIORITY_ICONS[task.priority]}
               </span>
+              <EffortBadge effort={task.estimated_token_effort} compact />
               {tags.map(tag => (
                 <span key={tag} className="badge rounded-pill bg-light text-dark border tag-pill">
                   {tag}
