@@ -6,24 +6,29 @@ Track tasks, priorities, owners, and GitHub links. Works great on mobile.
 
 ## Features
 
-- **Mobile-friendly** dark UI with status badges and owner colour tags
+- **React + Bootstrap 5** — dark-themed, mobile-first single-page app
+- **Vite** build tooling — fast dev server with API proxy, optimised production build
 - **REST API** — agents can create, update and query tasks programmatically
-- **SQLite** — local-first, zero-dependency storage
+- **SQLite** via sql.js — local-first, pure WASM, no native compilation required
 - **Filter & search** — by status, owner, priority, or free text
-- **GitHub links** — link tasks to PRs/repos
+- **Stats bar** — live task count breakdown by status
+- **GitHub links** — link tasks to PRs/repos per task
 
 ## Quick Start
 
 ```bash
 cd /home/matt/.openclaw/workspace/projects/dashboard
 
-# Install dependencies
+# 1. Install backend dependencies
 npm install
 
-# Seed starter tasks
+# 2. Build the React frontend (output → public/)
+npm run build
+
+# 3. Seed starter tasks (first run only)
 node src/seed.js
 
-# Start server (port 3420 by default)
+# 4. Start the server
 npm start
 ```
 
@@ -128,21 +133,51 @@ WantedBy=multi-user.target
 sudo systemctl enable --now openclaw-dashboard
 ```
 
+## Development (hot-reload)
+
+Run the Express API and Vite dev server in parallel:
+
+```bash
+# Terminal 1 — API server
+npm run dev:server   # → http://localhost:3420/api
+
+# Terminal 2 — React dev server (proxies /api to 3420)
+npm run dev:client   # → http://localhost:5173
+```
+
+Changes to the frontend hot-reload instantly. When ready to deploy:
+
+```bash
+npm run build   # builds React → public/ then Express serves everything on :3420
+```
+
 ## Project Structure
 
 ```
 dashboard/
 ├── src/
-│   ├── server.js        Express app & server
-│   ├── db.js            SQLite setup & schema
-│   ├── seed.js          Seed starter tasks
+│   ├── server.js              Express app & server
+│   ├── db.js                  sql.js SQLite wrapper
+│   ├── seed.js                Seed starter tasks
 │   └── routes/
-│       └── tasks.js     CRUD route handlers
-├── public/
-│   ├── index.html       SPA shell
-│   ├── style.css        Dark mobile-friendly UI
-│   └── app.js           Vanilla JS frontend
-├── data/                SQLite database (git-ignored)
+│       └── tasks.js           CRUD route handlers
+├── client/                    React + Vite frontend
+│   ├── src/
+│   │   ├── App.jsx            Root component
+│   │   ├── index.css          Bootstrap overrides & custom styles
+│   │   ├── hooks/
+│   │   │   └── useTasks.js    API hook (fetch + state)
+│   │   └── components/
+│   │       ├── TaskCard.jsx   Task list card
+│   │       ├── TaskModal.jsx  Create/edit modal
+│   │       ├── FilterBar.jsx  Search + filter bar
+│   │       ├── StatsBar.jsx   Status count summary
+│   │       ├── StatusBadge.jsx
+│   │       └── OwnerBadge.jsx
+│   ├── vite.config.js         Build → ../public/, dev proxy /api
+│   └── package.json
+├── public/                    Built frontend (git-tracked)
+├── data/                      SQLite database (git-ignored)
 ├── package.json
 └── README.md
 ```

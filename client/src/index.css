@@ -1,0 +1,99 @@
+/* ── Global tweaks on top of Bootstrap dark theme ── */
+[data-bs-theme="dark"] {
+  --bs-body-bg: #0f1117;
+  --bs-body-color: #e8eaf0;
+  --bs-card-bg: #1a1d27;
+  --bs-border-color: #2e3348;
+  --bs-secondary-bg: #232738;
+}
+
+body {
+  min-height: 100vh;
+}
+
+/* Sticky top nav shadow */
+.navbar {
+  border-bottom: 1px solid var(--bs-border-color);
+  box-shadow: 0 2px 12px rgba(0,0,0,.4);
+}
+
+/* Task cards */
+.task-card {
+  cursor: pointer;
+  transition: transform .12s ease, border-color .15s ease;
+  border: 1px solid var(--bs-border-color) !important;
+}
+
+.task-card:hover {
+  transform: translateY(-2px);
+  border-color: #7c6aff !important;
+}
+
+.task-card:active {
+  transform: translateY(0);
+}
+
+/* Priority dot */
+.priority-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.priority-dot.high   { background: #fc5c65; }
+.priority-dot.medium { background: #fd9644; }
+.priority-dot.low    { background: #4b6584; }
+
+/* Owner badge colours (supplements Bootstrap) */
+.owner-matt   { background-color: #7c6aff !important; color: #fff !important; }
+.owner-norman { background-color: #48bb78 !important; color: #111 !important; }
+.owner-ada    { background-color: #f687b3 !important; color: #111 !important; }
+.owner-mason  { background-color: #63b3ed !important; color: #111 !important; }
+.owner-atlas  { background-color: #fbb040 !important; color: #111 !important; }
+.owner-bard   { background-color: #b794f4 !important; color: #fff !important; }
+.owner-team   { background-color: #81e6d9 !important; color: #111 !important; }
+
+/* Status badge colours */
+.status-backlog     { background-color: #4a5568 !important; color: #fff !important; }
+.status-in-progress { background-color: #d69e2e !important; color: #111 !important; }
+.status-review      { background-color: #4299e1 !important; color: #fff !important; }
+.status-done        { background-color: #48bb78 !important; color: #111 !important; }
+
+/* Strikethrough done tasks */
+.done-text {
+  text-decoration: line-through;
+  opacity: 0.55;
+}
+
+/* Compact tag pill */
+.tag-pill {
+  font-size: 0.72rem;
+  padding: 1px 7px;
+  border-radius: 4px;
+  background: var(--bs-secondary-bg);
+  color: var(--bs-secondary-color);
+  border: 1px solid var(--bs-border-color);
+  white-space: nowrap;
+}
+
+/* Card description clamp */
+.task-desc {
+  font-size: 0.83rem;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  color: var(--bs-secondary-color);
+}
+
+/* Empty state */
+.empty-icon { font-size: 3rem; }
+
+/* Filter bar scrollable on mobile */
+.filter-bar {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.filter-bar::-webkit-scrollbar { display: none; }
