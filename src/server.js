@@ -6,7 +6,7 @@ const fs = require('fs');
 const app = express();
 const PORT = process.env.PORT || 3420;
 
-// --- API Key Auth ---
+// Legacy API key support (for direct API access, e.g. from agents/CLI)
 let apiKey = process.env.DASHBOARD_API_KEY;
 if (!apiKey) {
   apiKey = crypto.randomBytes(32).toString('hex');
@@ -15,36 +15,62 @@ if (!apiKey) {
   console.log('   Set this env var to keep it stable across restarts.');
 }
 
+// Session auth (browser UI)
+const { router: authRouter, sessions } = require('./routes/auth');
+const authMode = !!process.env.DASHBOARD_PASSWORD;
+if (authMode) {
+  console.log('🔒 Password auth enabled (DASHBOARD_PASSWORD is set)');
+} else {
+  console.log('⚠️  No DASHBOARD_PASSWORD set — auth in dev mode (any password accepted)');
+}
+
 // Middleware
 app.use(express.json());
 
-// Serve static assets (JS, CSS, images) without auth
+// Public routes — no auth required
+app.use('/api/auth', authRouter);
+
+// Health check (public)
+app.get('/api/health', (req, res) => {
+  res.json({ ok: true, ts: new Date().toISOString(), service: 'openclaw-dashboard' });
+});
+
+// Serve static assets without auth
 app.use('/assets', express.static(path.join(__dirname, '..', 'public', 'assets')));
 app.use('/favicon.ico', express.static(path.join(__dirname, '..', 'public', 'favicon.ico')));
 app.use('/logo.svg', express.static(path.join(__dirname, '..', 'public', 'logo.svg')));
 
-// Serve index.html with injected API key for the browser UI
+// Serve index.html (no key injection)
 app.get('/', (req, res) => {
-  const htmlPath = path.join(__dirname, '..', 'public', 'index.html');
-  let html = fs.readFileSync(htmlPath, 'utf8');
-  const injection = `<script>window.__DASHBOARD_API_KEY__ = "${apiKey}";</script>`;
-  html = html.replace('</head>', `${injection}\n  </head>`);
-  res.setHeader('Content-Type', 'text/html');
-  res.send(html);
+  res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));
 });
 
-// API key authentication middleware for all /api/* routes
+// API authentication middleware for all /api/* routes (except /api/auth/*)
 app.use('/api', (req, res, next) => {
-  const provided = req.headers['x-api-key'];
-  if (!provided) {
-    return res.status(401).json({ ok: false, error: 'Missing X-API-Key header' });
-  }
-  // Constant-time comparison to prevent timing attacks
-  const expected = Buffer.from(apiKey);
-  const given = Buffer.from(provided);
-  if (expected.length !== given.length || !crypto.timingSafeEqual(expected, given)) {
+  // Allow legacy X-API-Key header (for agents/CLI)
+  const legacyKey = req.headers['x-api-key'];
+  if (legacyKey) {
+    const expected = Buffer.from(apiKey);
+    const given = Buffer.from(legacyKey);
+    if (expected.length === given.length && crypto.timingSafeEqual(expected, given)) {
+      return next();
+    }
     return res.status(403).json({ ok: false, error: 'Invalid API key' });
   }
+
+  // Bearer token from session
+  const auth = req.headers['authorization'] || '';
+  const token = auth.replace(/^Bearer\s+/i, '');
+  if (!token) {
+    return res.status(401).json({ ok: false, error: 'Authentication required' });
+  }
+
+  const expiry = sessions.get(token);
+  if (!expiry || Date.now() > expiry) {
+    sessions.delete(token);
+    return res.status(401).json({ ok: false, error: 'Session expired or invalid' });
+  }
+
   next();
 });
 
@@ -53,23 +79,12 @@ app.use('/api/tasks', require('./routes/tasks'));
 app.use('/api/tasks/:id/comments', require('./routes/comments'));
 app.use('/api/system', require('./routes/system'));
 
-// Health check
-app.get('/api/health', (req, res) => {
-  res.json({ ok: true, ts: new Date().toISOString(), service: 'openclaw-dashboard' });
-});
-
-// Catch-all → SPA index (also injects key for deep links)
+// Catch-all → SPA index
 app.get('*', (req, res) => {
-  const htmlPath = path.join(__dirname, '..', 'public', 'index.html');
-  let html = fs.readFileSync(htmlPath, 'utf8');
-  const injection = `<script>window.__DASHBOARD_API_KEY__ = "${apiKey}";</script>`;
-  html = html.replace('</head>', `${injection}\n  </head>`);
-  res.setHeader('Content-Type', 'text/html');
-  res.send(html);
+  res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));
 });
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 OpenClaw Dashboard running at http://localhost:${PORT}`);
   console.log(`   API: http://localhost:${PORT}/api/tasks`);
-  console.log(`🔒 API key auth enabled (X-API-Key header required for /api/* routes)`);
 });

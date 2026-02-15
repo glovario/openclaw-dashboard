@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
-import { fetchTasks, createTask, updateTask, deleteTask } from './api'
+import { fetchTasks, createTask, updateTask, deleteTask, getToken, logout } from './api'
+import LoginScreen from './components/LoginScreen'
 import FilterBar from './components/FilterBar'
 import TaskCard from './components/TaskCard'
 import KanbanBoard from './components/KanbanBoard'
@@ -10,6 +11,7 @@ import SystemHealth from './components/SystemHealth'
 const DEFAULT_FILTERS = { excludeDone: true }
 
 export default function App() {
+  const [authed, setAuthed] = useState(() => !!getToken())
   const [allTasks, setAllTasks] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -105,6 +107,15 @@ export default function App() {
     })
   }
 
+  if (!authed) {
+    return <LoginScreen onLogin={() => setAuthed(true)} />
+  }
+
+  const handleLogout = async () => {
+    await logout()
+    setAuthed(false)
+  }
+
   return (
     <>
       <nav className="navbar navbar-dark mb-4" style={{ backgroundColor: 'var(--color-primary)' }}>
@@ -129,6 +140,9 @@ export default function App() {
             </div>
             <button className="btn btn-primary btn-sm" onClick={() => setShowAdd(true)}>
               + New task
+            </button>
+            <button className="btn btn-outline-light btn-sm" onClick={handleLogout} title="Sign out">
+              ⎋ Sign out
             </button>
           </div>
         </div>

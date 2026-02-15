@@ -1,128 +1,95 @@
 const path = require('path');
 const fs = require('fs');
-const initSqlJs = require('sql.js');
+const Database = require('better-sqlite3');
 
 const DB_PATH = process.env.DB_PATH || path.join(__dirname, '..', 'data', 'dashboard.db');
 const dataDir = path.dirname(DB_PATH);
 if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
 
-let _db = null;
+const db = new Database(DB_PATH);
 
-async function getDb() {
-  if (_db) return _db;
+// Enable WAL mode for better concurrent read performance
+db.pragma('journal_mode = WAL');
+db.pragma('foreign_keys = ON');
 
-  const SQL = await initSqlJs();
-  
-  if (fs.existsSync(DB_PATH)) {
-    const fileBuffer = fs.readFileSync(DB_PATH);
-    _db = new SQL.Database(fileBuffer);
-  } else {
-    _db = new SQL.Database();
+// Schema
+db.exec(`
+  CREATE TABLE IF NOT EXISTS tasks (
+    id                      INTEGER PRIMARY KEY AUTOINCREMENT,
+    title                   TEXT NOT NULL,
+    description             TEXT DEFAULT '',
+    status                  TEXT NOT NULL DEFAULT 'backlog',
+    owner                   TEXT NOT NULL DEFAULT 'matt',
+    priority                TEXT NOT NULL DEFAULT 'medium',
+    github_url              TEXT DEFAULT '',
+    tags                    TEXT DEFAULT '',
+    estimated_token_effort  TEXT NOT NULL DEFAULT 'unknown',
+    created_at              TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at              TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
+  CREATE TABLE IF NOT EXISTS comments (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    task_id    INTEGER NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+    author     TEXT NOT NULL,
+    body       TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+`);
+
+// Migrations: add columns to existing DBs
+for (const sql of [
+  `ALTER TABLE tasks ADD COLUMN estimated_token_effort TEXT NOT NULL DEFAULT 'unknown'`,
+  `ALTER TABLE tasks ADD COLUMN display_id TEXT`,
+]) {
+  try { db.exec(sql); } catch (_) { /* already exists */ }
+}
+
+// Backfill display_id
+const untagged = db.prepare(`SELECT id FROM tasks WHERE display_id IS NULL ORDER BY id ASC`).all();
+if (untagged.length > 0) {
+  const existing = db.prepare(`SELECT display_id FROM tasks WHERE display_id IS NOT NULL`).all();
+  let maxSeq = 0;
+  for (const { display_id } of existing) {
+    const m = display_id && display_id.match(/^OC-(\d+)$/);
+    if (m) maxSeq = Math.max(maxSeq, parseInt(m[1], 10));
   }
-
-  // Enable WAL-like behaviour (sql.js is in-memory, we persist on write)
-  _db.run(`
-    CREATE TABLE IF NOT EXISTS tasks (
-      id                      INTEGER PRIMARY KEY AUTOINCREMENT,
-      title                   TEXT NOT NULL,
-      description             TEXT DEFAULT '',
-      status                  TEXT NOT NULL DEFAULT 'backlog',
-      owner                   TEXT NOT NULL DEFAULT 'matt',
-      priority                TEXT NOT NULL DEFAULT 'medium',
-      github_url              TEXT DEFAULT '',
-      tags                    TEXT DEFAULT '',
-      estimated_token_effort  TEXT NOT NULL DEFAULT 'unknown',
-      created_at              TEXT NOT NULL DEFAULT (datetime('now')),
-      updated_at              TEXT NOT NULL DEFAULT (datetime('now'))
-    )
-  `);
-
-  _db.run(`
-    CREATE TABLE IF NOT EXISTS comments (
-      id         INTEGER PRIMARY KEY AUTOINCREMENT,
-      task_id    INTEGER NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
-      author     TEXT NOT NULL,
-      body       TEXT NOT NULL,
-      created_at TEXT NOT NULL DEFAULT (datetime('now'))
-    )
-  `);
-
-  // Migration: add columns to existing DBs that predate these fields
-  try {
-    _db.run(`ALTER TABLE tasks ADD COLUMN estimated_token_effort TEXT NOT NULL DEFAULT 'unknown'`);
-  } catch (_) { /* column already exists — safe to ignore */ }
-
-  try {
-    _db.run(`ALTER TABLE tasks ADD COLUMN display_id TEXT`);
-  } catch (_) { /* column already exists — safe to ignore */ }
-
-  // Backfill display_id for any tasks that don't have one yet
-  const untagged = [];
-  {
-    const stmt = _db.prepare(`SELECT id FROM tasks WHERE display_id IS NULL ORDER BY id ASC`);
-    while (stmt.step()) untagged.push(stmt.getAsObject().id);
-    stmt.free();
-  }
-  if (untagged.length > 0) {
-    // Find the highest existing sequence number
-    const stmt2 = _db.prepare(`SELECT display_id FROM tasks WHERE display_id IS NOT NULL`);
-    let maxSeq = 0;
-    while (stmt2.step()) {
-      const did = stmt2.getAsObject().display_id;
-      const m = did && did.match(/^OC-(\d+)$/);
-      if (m) maxSeq = Math.max(maxSeq, parseInt(m[1], 10));
-    }
-    stmt2.free();
-    for (const id of untagged) {
+  const updateStmt = db.prepare(`UPDATE tasks SET display_id = ? WHERE id = ?`);
+  const backfill = db.transaction(() => {
+    for (const { id } of untagged) {
       maxSeq += 1;
-      const displayId = `OC-${String(maxSeq).padStart(3, '0')}`;
-      _db.run(`UPDATE tasks SET display_id = ? WHERE id = ?`, [displayId, id]);
+      updateStmt.run(`OC-${String(maxSeq).padStart(3, '0')}`, id);
     }
-  }
-
-  persist();
-  return _db;
+  });
+  backfill();
 }
 
-function persist() {
-  if (!_db) return;
-  const data = _db.export();
-  fs.writeFileSync(DB_PATH, Buffer.from(data));
-}
+// Helpers (synchronous — better-sqlite3 is sync)
 
-// Helper: run a query and persist
+// Kept for backward compat — routes call these directly
 function run(sql, params = []) {
-  if (!_db) throw new Error('DB not initialised');
-  _db.run(sql, params);
-  persist();
+  return db.prepare(sql).run(params);
 }
 
-// Helper: get all rows as objects
 function all(sql, params = []) {
-  if (!_db) throw new Error('DB not initialised');
-  const stmt = _db.prepare(sql);
-  stmt.bind(params);
-  const rows = [];
-  while (stmt.step()) {
-    rows.push(stmt.getAsObject());
-  }
-  stmt.free();
-  return rows;
+  return db.prepare(sql).all(params);
 }
 
-// Helper: get single row
 function get(sql, params = []) {
-  const rows = all(sql, params);
-  return rows[0] || null;
+  return db.prepare(sql).get(params);
 }
 
-// Helper: run and return last insert rowid
 function insert(sql, params = []) {
-  if (!_db) throw new Error('DB not initialised');
-  _db.run(sql, params);
-  const result = get('SELECT last_insert_rowid() as id');
-  persist();
-  return result ? result.id : null;
+  const result = db.prepare(sql).run(params);
+  return result.lastInsertRowid;
 }
 
-module.exports = { getDb, run, all, get, insert, persist };
+// getDb kept for any code that awaits it (now sync, returns immediately)
+async function getDb() {
+  return db;
+}
+
+// persist is a no-op — better-sqlite3 writes directly to disk
+function persist() {}
+
+module.exports = { getDb, run, all, get, insert, persist, db };
