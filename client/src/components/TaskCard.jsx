@@ -15,7 +15,16 @@ export default function TaskCard({ task, onClick }) {
       <div className="card-body py-3">
         <div className="d-flex align-items-start justify-content-between gap-2">
           <div className="flex-grow-1 min-w-0">
-            <h6 className="card-title mb-1 text-truncate">{task.title}</h6>
+            <h6
+              className="card-title mb-1"
+              style={{
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                display: 'block',
+                maxWidth: '100%',
+              }}
+            >{task.title}</h6>
             {task.description && (
               <p
                 className="card-text text-muted small mb-2"
