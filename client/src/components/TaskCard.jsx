@@ -34,8 +34,8 @@ export default function TaskCard({ task, onClick }) {
                 style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}
               >{task.title}</h6>
             </div>
+            {/* OC-023: webkit line-clamp clamps description to 2 lines */}
             {task.description && (
-              {/* OC-023: webkit line-clamp clamps description to 2 lines */}
               <p
                 className="card-text text-muted small mb-2"
                 style={{
