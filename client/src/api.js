@@ -8,6 +8,16 @@ function authHeaders(extra = {}) {
   return { 'X-API-Key': getApiKey(), ...extra }
 }
 
+export async function apiFetch(path, options = {}) {
+  const res = await fetch(path, {
+    ...options,
+    headers: authHeaders(options.headers || {}),
+  })
+  const data = await res.json()
+  if (!data.ok) throw new Error(data.error || 'Request failed')
+  return data
+}
+
 export async function fetchTasks(filters = {}) {
   const params = new URLSearchParams()
   if (filters.status)   params.set('status',                   filters.status)
