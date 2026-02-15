@@ -1,7 +1,14 @@
 import { STATUSES, OWNERS, PRIORITIES, EFFORTS } from '../constants'
 
 export default function FilterBar({ filters, onChange, onClear }) {
-  const set = (key, val) => onChange({ ...filters, [key]: val })
+  const set = (key, val) => {
+    const updated = { ...filters, [key]: val }
+    // If user explicitly selects a status (including 'done'), disable excludeDone
+    if (key === 'status') {
+      updated.excludeDone = false
+    }
+    onChange(updated)
+  }
 
   return (
     <div className="filter-bar row g-2 mb-4">
