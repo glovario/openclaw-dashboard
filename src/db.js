@@ -47,10 +47,38 @@ async function getDb() {
     )
   `);
 
-  // Migration: add column to existing DBs that predate this field
+  // Migration: add columns to existing DBs that predate these fields
   try {
     _db.run(`ALTER TABLE tasks ADD COLUMN estimated_token_effort TEXT NOT NULL DEFAULT 'unknown'`);
   } catch (_) { /* column already exists — safe to ignore */ }
+
+  try {
+    _db.run(`ALTER TABLE tasks ADD COLUMN display_id TEXT`);
+  } catch (_) { /* column already exists — safe to ignore */ }
+
+  // Backfill display_id for any tasks that don't have one yet
+  const untagged = [];
+  {
+    const stmt = _db.prepare(`SELECT id FROM tasks WHERE display_id IS NULL ORDER BY id ASC`);
+    while (stmt.step()) untagged.push(stmt.getAsObject().id);
+    stmt.free();
+  }
+  if (untagged.length > 0) {
+    // Find the highest existing sequence number
+    const stmt2 = _db.prepare(`SELECT display_id FROM tasks WHERE display_id IS NOT NULL`);
+    let maxSeq = 0;
+    while (stmt2.step()) {
+      const did = stmt2.getAsObject().display_id;
+      const m = did && did.match(/^OC-(\d+)$/);
+      if (m) maxSeq = Math.max(maxSeq, parseInt(m[1], 10));
+    }
+    stmt2.free();
+    for (const id of untagged) {
+      maxSeq += 1;
+      const displayId = `OC-${String(maxSeq).padStart(3, '0')}`;
+      _db.run(`UPDATE tasks SET display_id = ? WHERE id = ?`, [displayId, id]);
+    }
+  }
 
   persist();
   return _db;

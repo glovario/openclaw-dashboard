@@ -52,8 +52,17 @@ export default function TaskDetailModal({ task, onClose, onSave, onDelete }) {
       <div className="modal-dialog modal-lg modal-dialog-scrollable">
         <div className="modal-content">
           <div className="modal-header">
-            <h5 className="modal-title">
-              {editing ? 'Edit Task' : task.title}
+            <h5 className="modal-title d-flex align-items-center gap-2">
+              {editing ? 'Edit Task' : (
+                <>
+                  {task.display_id && (
+                    <span style={{ fontFamily: 'monospace', fontSize: '0.75rem', color: '#6c757d', fontWeight: 'normal', whiteSpace: 'nowrap' }}>
+                      {task.display_id}
+                    </span>
+                  )}
+                  {task.title}
+                </>
+              )}
             </h5>
             <button type="button" className="btn-close" onClick={onClose} />
           </div>

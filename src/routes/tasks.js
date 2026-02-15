@@ -61,10 +61,19 @@ router.post('/', async (req, res) => {
 
   try {
     await db.getDb();
+    // Generate next display_id
+    const maxRow = db.get(`SELECT display_id FROM tasks WHERE display_id IS NOT NULL ORDER BY CAST(SUBSTR(display_id,4) AS INTEGER) DESC LIMIT 1`);
+    let nextSeq = 1;
+    if (maxRow && maxRow.display_id) {
+      const m = maxRow.display_id.match(/^OC-(\d+)$/);
+      if (m) nextSeq = parseInt(m[1], 10) + 1;
+    }
+    const displayId = `OC-${String(nextSeq).padStart(3, '0')}`;
+
     const id = db.insert(
-      `INSERT INTO tasks (title, description, status, owner, priority, github_url, tags, estimated_token_effort)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [title, description, status, owner, priority, github_url, tags, estimated_token_effort]
+      `INSERT INTO tasks (title, description, status, owner, priority, github_url, tags, estimated_token_effort, display_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [title, description, status, owner, priority, github_url, tags, estimated_token_effort, displayId]
     );
     const task = db.get('SELECT * FROM tasks WHERE id = ?', [id]);
     res.status(201).json({ ok: true, task });
