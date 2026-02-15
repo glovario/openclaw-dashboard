@@ -1,11 +1,21 @@
-import { STATUS_COLORS, PRIORITY_ICONS } from '../constants'
+import { STATUS_COLORS, PRIORITY_ICONS, OWNERS } from '../constants'
 import TaskForm from './TaskForm'
 import EffortBadge from './EffortBadge'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { fetchComments, addComment } from '../api'
 
 export default function TaskDetailModal({ task, onClose, onSave, onDelete }) {
   const [editing, setEditing] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [comments, setComments] = useState([])
+  const [commentAuthor, setCommentAuthor] = useState(OWNERS[0])
+  const [commentBody, setCommentBody] = useState('')
+  const [commentSubmitting, setCommentSubmitting] = useState(false)
+
+  useEffect(() => {
+    if (!task) return
+    fetchComments(task.id).then(setComments).catch(() => {})
+  }, [task?.id])
 
   if (!task) return null
 
@@ -20,6 +30,21 @@ export default function TaskDetailModal({ task, onClose, onSave, onDelete }) {
     if (!window.confirm('Delete this task?')) return
     setDeleting(true)
     try { await onDelete(task.id) } finally { setDeleting(false) }
+  }
+
+  const handleAddComment = async e => {
+    e.preventDefault()
+    if (!commentBody.trim()) return
+    setCommentSubmitting(true)
+    try {
+      const comment = await addComment(task.id, { author: commentAuthor, body: commentBody.trim() })
+      setComments(prev => [...prev, comment])
+      setCommentBody('')
+    } catch (err) {
+      alert('Failed to add comment: ' + err.message)
+    } finally {
+      setCommentSubmitting(false)
+    }
   }
 
   return (

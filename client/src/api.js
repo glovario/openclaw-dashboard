@@ -52,3 +52,21 @@ export async function deleteTask(id) {
   const data = await res.json()
   if (!data.ok) throw new Error(data.error)
 }
+
+export async function fetchComments(taskId) {
+  const res = await fetch(`${BASE}/${taskId}/comments`, { headers: authHeaders() })
+  const data = await res.json()
+  if (!data.ok) throw new Error(data.error)
+  return data.comments
+}
+
+export async function addComment(taskId, body) {
+  const res = await fetch(`${BASE}/${taskId}/comments`, {
+    method: 'POST',
+    headers: authHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify(body)
+  })
+  const data = await res.json()
+  if (!data.ok) throw new Error(data.error)
+  return data.comment
+}
