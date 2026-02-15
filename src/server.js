@@ -49,6 +49,7 @@ app.use('/api', (req, res, next) => {
 
 // Routes
 app.use('/api/tasks', require('./routes/tasks'));
+app.use('/api/tasks/:id/comments', require('./routes/comments'));
 
 // Health check
 app.get('/api/health', (req, res) => {

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { fetchTasks, createTask, updateTask, deleteTask } from './api'
 import FilterBar from './components/FilterBar'
 import TaskCard from './components/TaskCard'
+import KanbanBoard from './components/KanbanBoard'
 import TaskDetailModal from './components/TaskDetailModal'
 import AddTaskModal from './components/AddTaskModal'
 
@@ -12,6 +13,7 @@ export default function App() {
   const [filters, setFilters] = useState({})
   const [selected, setSelected] = useState(null)
   const [showAdd, setShowAdd] = useState(false)
+  const [viewMode, setViewMode] = useState('list') // 'list' | 'kanban'
 
   const loadTasks = useCallback(async (f = filters) => {
     setLoading(true)
@@ -61,9 +63,23 @@ export default function App() {
       <nav className="navbar navbar-dark bg-dark mb-4">
         <div className="container-fluid">
           <span className="navbar-brand">🐾 OpenClaw Dashboard</span>
-          <button className="btn btn-primary btn-sm" onClick={() => setShowAdd(true)}>
-            + New task
-          </button>
+          <div className="d-flex gap-2 align-items-center">
+            <div className="btn-group btn-group-sm" role="group" aria-label="View mode">
+              <button
+                className={`btn ${viewMode === 'list' ? 'btn-light' : 'btn-outline-light'}`}
+                onClick={() => setViewMode('list')}
+                title="List view"
+              >☰ List</button>
+              <button
+                className={`btn ${viewMode === 'kanban' ? 'btn-light' : 'btn-outline-light'}`}
+                onClick={() => setViewMode('kanban')}
+                title="Kanban view"
+              >⬛ Kanban</button>
+            </div>
+            <button className="btn btn-primary btn-sm" onClick={() => setShowAdd(true)}>
+              + New task
+            </button>
+          </div>
         </div>
       </nav>
 
@@ -115,6 +131,8 @@ export default function App() {
             <div>No tasks found.</div>
             <button className="btn btn-outline-primary mt-2" onClick={() => setShowAdd(true)}>Add the first task</button>
           </div>
+        ) : viewMode === 'kanban' ? (
+          <KanbanBoard tasks={tasks} onTaskClick={setSelected} />
         ) : (
           <div className="row g-0">
             {tasks.map(task => (

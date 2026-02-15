@@ -59,3 +59,24 @@ body {
 .filter-bar .form-control {
   font-size: 0.875rem;
 }
+
+/* Kanban Board */
+.kanban-board {
+  align-items: flex-start;
+}
+
+.kanban-column {
+  display: flex;
+  flex-direction: column;
+  min-height: 200px;
+}
+
+.kanban-column-body {
+  flex: 1;
+  background: #f8f9fa;
+  min-height: 100px;
+}
+
+.kanban-column-body .task-card {
+  cursor: pointer;
+}
