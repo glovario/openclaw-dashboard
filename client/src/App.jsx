@@ -5,6 +5,7 @@ import TaskCard from './components/TaskCard'
 import KanbanBoard from './components/KanbanBoard'
 import TaskDetailModal from './components/TaskDetailModal'
 import AddTaskModal from './components/AddTaskModal'
+import SystemHealth from './components/SystemHealth'
 
 export default function App() {
   const [tasks, setTasks] = useState([])
@@ -64,6 +65,7 @@ export default function App() {
         <div className="container-fluid">
           <span className="navbar-brand">🐾 OpenClaw Dashboard</span>
           <div className="d-flex gap-2 align-items-center">
+            <SystemHealth />
             <div className="btn-group btn-group-sm" role="group" aria-label="View mode">
               <button
                 className={`btn ${viewMode === 'list' ? 'btn-light' : 'btn-outline-light'}`}
