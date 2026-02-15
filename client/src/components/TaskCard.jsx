@@ -17,7 +17,16 @@ export default function TaskCard({ task, onClick }) {
           <div className="flex-grow-1 min-w-0">
             <h6 className="card-title mb-1 text-truncate">{task.title}</h6>
             {task.description && (
-              <p className="card-text text-muted small mb-2 text-truncate">{task.description}</p>
+              <p
+                className="card-text text-muted small mb-2"
+                style={{
+                  overflow: 'hidden',
+                  display: '-webkit-box',
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: 'vertical',
+                  wordBreak: 'break-word',
+                }}
+              >{task.description}</p>
             )}
             <div className="d-flex flex-wrap gap-1 align-items-center">
               <span className={`badge status-badge bg-${STATUS_COLORS[task.status] || 'secondary'}`}>
