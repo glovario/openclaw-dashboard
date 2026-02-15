@@ -21,6 +21,7 @@ app.use(express.json());
 // Serve static assets (JS, CSS, images) without auth
 app.use('/assets', express.static(path.join(__dirname, '..', 'public', 'assets')));
 app.use('/favicon.ico', express.static(path.join(__dirname, '..', 'public', 'favicon.ico')));
+app.use('/logo.svg', express.static(path.join(__dirname, '..', 'public', 'logo.svg')));
 
 // Serve index.html with injected API key for the browser UI
 app.get('/', (req, res) => {

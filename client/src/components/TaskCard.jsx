@@ -15,13 +15,16 @@ export default function TaskCard({ task, onClick }) {
       <div className="card-body py-3">
         <div className="d-flex align-items-start justify-content-between gap-2">
           <div className="flex-grow-1 min-w-0">
-            <div className="d-flex align-items-center gap-2 mb-1">
+            <div className="d-flex align-items-center gap-2 mb-1" style={{ minWidth: 0, overflow: 'hidden' }}>
               {task.display_id && (
                 <span style={{ fontFamily: 'monospace', fontSize: '0.7rem', color: '#6c757d', letterSpacing: '0.02em', userSelect: 'none' }}>
                   {task.display_id}
                 </span>
               )}
-              <h6 className="card-title mb-0 text-truncate">{task.title}</h6>
+              <h6
+                className="card-title mb-0"
+                style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}
+              >{task.title}</h6>
             </div>
             {task.description && (
               <p
