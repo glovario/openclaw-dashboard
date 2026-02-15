@@ -61,9 +61,12 @@ export default function App() {
 
   return (
     <>
-      <nav className="navbar navbar-dark bg-dark mb-4">
+      <nav className="navbar navbar-dark mb-4" style={{ backgroundColor: 'var(--color-primary)' }}>
         <div className="container-fluid">
-          <span className="navbar-brand">🐾 OpenClaw Dashboard</span>
+          <span className="navbar-brand d-flex align-items-center gap-2">
+            <img src="/logo.svg" alt="The Huddle logo" width="28" height="28" />
+            The Huddle
+          </span>
           <div className="d-flex gap-2 align-items-center">
             <SystemHealth />
             <div className="btn-group btn-group-sm" role="group" aria-label="View mode">
