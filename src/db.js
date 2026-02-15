@@ -31,7 +31,7 @@ async function getDb() {
       priority                TEXT NOT NULL DEFAULT 'medium',
       github_url              TEXT DEFAULT '',
       tags                    TEXT DEFAULT '',
-      estimated_token_effort  TEXT NOT NULL DEFAULT 'medium',
+      estimated_token_effort  TEXT NOT NULL DEFAULT 'unknown',
       created_at              TEXT NOT NULL DEFAULT (datetime('now')),
       updated_at              TEXT NOT NULL DEFAULT (datetime('now'))
     )
@@ -49,7 +49,7 @@ async function getDb() {
 
   // Migration: add column to existing DBs that predate this field
   try {
-    _db.run(`ALTER TABLE tasks ADD COLUMN estimated_token_effort TEXT NOT NULL DEFAULT 'medium'`);
+    _db.run(`ALTER TABLE tasks ADD COLUMN estimated_token_effort TEXT NOT NULL DEFAULT 'unknown'`);
   } catch (_) { /* column already exists — safe to ignore */ }
 
   persist();
