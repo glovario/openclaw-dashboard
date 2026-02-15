@@ -77,13 +77,40 @@ All routes under `/api/tasks`:
 
 ---
 
+## Authentication
+
+All `/api/*` routes require an **API key** supplied via the `X-API-Key` request header.
+
+```bash
+curl -H "X-API-Key: your-key-here" http://localhost:3420/api/tasks
+```
+
+The browser UI (served from `/`) is automatically exempt — the key is injected into the page at startup and sent transparently by the React frontend.
+
+### Configuring the key
+
+Set the `DASHBOARD_API_KEY` environment variable before starting the server:
+
+```bash
+DASHBOARD_API_KEY=mysecretkey npm start
+```
+
+If the variable is **not set**, a random 64-character hex key is generated at startup and printed to the console:
+
+```
+⚠️  DASHBOARD_API_KEY not set. Generated a temporary key for this session:
+   DASHBOARD_API_KEY=a3f9...
+   Set this env var to keep it stable across restarts.
+```
+
+---
+
 ## Configuration
 
 | Env var | Default | Description |
 |---------|---------|-------------|
 | `PORT` | 3420 | HTTP port |
-| `DASHBOARD_PASSWORD` | (none) | Enable basic auth on `/api` |
-| `DASHBOARD_USER` | openclaw | Basic auth username |
+| `DASHBOARD_API_KEY` | (auto-generated) | API key for `/api/*` routes (`X-API-Key` header) |
 
 ---
 
@@ -105,3 +132,34 @@ Estimate the total tokens (input + output) expected to complete the task under n
 | `small` | < 2,000 | Simple queries, status updates, short summaries |
 | `medium` | 2,000–8,000 | Feature implementation, analysis tasks, moderate research |
 | `large` | 8,000+ | Complex refactors, multi-file changes, deep research |
+
+---
+
+## Running as a systemd service
+
+Example unit file (`/etc/systemd/system/openclaw-dashboard.service`):
+
+```ini
+[Unit]
+Description=OpenClaw Dashboard
+After=network.target
+
+[Service]
+Type=simple
+User=matt
+WorkingDirectory=/home/matt/.openclaw/workspace/projects/dashboard
+ExecStart=/usr/bin/node src/server.js
+Restart=on-failure
+Environment=PORT=3420
+Environment=DASHBOARD_API_KEY=replace-with-your-secret-key
+
+[Install]
+WantedBy=multi-user.target
+```
+
+After editing:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable --now openclaw-dashboard
+```
