@@ -1,0 +1,9 @@
+{
+  "name": "pr-review-scripts",
+  "version": "1.0.0",
+  "description": "Mason AI PR review scripts",
+  "type": "module",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.36.0"
+  }
+}

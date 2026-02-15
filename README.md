@@ -135,6 +135,33 @@ Estimate the total tokens (input + output) expected to complete the task under n
 
 ---
 
+## PR Review Assistant (Mason)
+
+Every pull request opened or updated on this repo is automatically reviewed by **Mason**, the OpenClaw AI agent, powered by Claude Sonnet.
+
+### How it works
+
+1. A PR is opened or a new commit is pushed.
+2. The GitHub Actions workflow (`.github/workflows/pr-review.yml`) triggers.
+3. The PR diff is fetched using the `gh` CLI.
+4. The diff is sent to Claude Sonnet via the Anthropic Messages API (`.github/scripts/review.js`).
+5. Mason posts a structured code review comment on the PR with:
+   - **Summary of Changes** — what the PR does
+   - **What Looks Good** — positive aspects
+   - **Potential Issues or Bugs** — logic errors, security concerns, edge cases
+   - **Suggestions for Improvement** — style, architecture, test coverage
+   - **Overall Assessment** — APPROVE / NEEDS CHANGES / MINOR COMMENTS
+
+### Required secret
+
+The workflow requires an `ANTHROPIC_API_KEY` secret to be set on the repository:
+
+```bash
+gh secret set ANTHROPIC_API_KEY --repo glovario/openclaw-dashboard
+```
+
+---
+
 ## Running as a systemd service
 
 Example unit file (`/etc/systemd/system/openclaw-dashboard.service`):
