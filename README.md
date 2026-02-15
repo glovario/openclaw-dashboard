@@ -163,3 +163,23 @@ After editing:
 sudo systemctl daemon-reload
 sudo systemctl enable --now openclaw-dashboard
 ```
+
+## GitHub PR Auto-Linking (Mason)
+
+When a PR is opened or reopened on any `glovario/*` repo, the workflow at `.github/workflows/pr-dashboard-sync.yml` automatically:
+
+1. Searches the dashboard for a task matching the PR title
+2. If found: patches it with the PR URL and sets status → `review`
+3. If not found: creates a new task (owner: mason, status: review, priority: medium)
+
+### Setup
+
+Add the `DASHBOARD_API_KEY` secret to the repo:
+
+```bash
+gh secret set DASHBOARD_API_KEY --repo glovario/openclaw-dashboard --body "<your-api-key>"
+```
+
+Or via GitHub UI: **Settings → Secrets and variables → Actions → New repository secret**
+
+The workflow uses `http://192.168.1.124:3420` as the dashboard base URL (LAN address). Update `DASHBOARD_BASE_URL` in the workflow if this changes.
