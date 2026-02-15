@@ -1,17 +1,10 @@
-import React from 'react';
-
-const LABELS = {
-  'backlog':     'Backlog',
-  'in-progress': 'In Progress',
-  'review':      'Review',
-  'done':        'Done',
-};
+import { STATUS_META } from '../constants'
 
 export default function StatusBadge({ status, className = '' }) {
-  const cls = `status-${status}`;
+  const meta = STATUS_META[status] || { label: status, color: 'secondary', textClass: '' }
   return (
-    <span className={`badge ${cls} ${className}`}>
-      {LABELS[status] || status}
+    <span className={`badge bg-${meta.color} ${meta.textClass} ${className}`}>
+      {meta.label}
     </span>
   );
 }

@@ -1,4 +1,4 @@
-import { STATUS_COLORS, PRIORITY_ICONS, OWNERS } from '../constants'
+import { STATUS_COLORS, STATUS_META, PRIORITY_ICONS, OWNERS } from '../constants'
 import TaskForm from './TaskForm'
 import EffortBadge from './EffortBadge'
 import { useState, useEffect } from 'react'
@@ -114,14 +114,14 @@ export default function TaskDetailModal({ task, onClose, onSave, onDelete }) {
                 <div className="mt-3">
                   <h6 className="text-muted text-uppercase small mb-2">Quick status</h6>
                   <div className="btn-group btn-group-sm flex-wrap gap-1" role="group">
-                    {['backlog','in-progress','review','done'].map(s => (
+                    {Object.entries(STATUS_META).map(([s, meta]) => (
                       <button
                         key={s}
                         type="button"
-                        className={`btn btn-${task.status === s ? STATUS_COLORS[s] : 'outline-' + STATUS_COLORS[s]}`}
+                        className={`btn btn-${task.status === s ? meta.color : 'outline-' + meta.color} ${task.status === s ? meta.textClass : ''}`}
                         onClick={() => onSave(task.id, { status: s })}
                       >
-                        {s}
+                        {meta.label}
                       </button>
                     ))}
                   </div>

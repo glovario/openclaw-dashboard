@@ -1,13 +1,26 @@
-export const STATUSES   = ['backlog', 'in-progress', 'review', 'done']
+export const STATUSES   = ['new', 'backlog', 'in-progress', 'on-hold', 'for-approval', 'review', 'done']
 export const OWNERS     = ['norman', 'ada', 'mason', 'atlas', 'bard', 'matt', 'team']
 export const PRIORITIES = ['high', 'medium', 'low']
 export const EFFORTS    = ['unknown', 'small', 'medium', 'large']
 
 export const STATUS_COLORS = {
+  new:           'info',
   backlog:       'secondary',
   'in-progress': 'primary',
+  'on-hold':     'warning',
+  'for-approval':'purple',
   review:        'warning',
   done:          'success'
+}
+
+export const STATUS_META = {
+  new:           { label: 'New',          color: 'info',      textClass: 'text-dark' },
+  backlog:       { label: 'Backlog',      color: 'secondary', textClass: '' },
+  'in-progress': { label: 'In Progress',  color: 'primary',   textClass: '' },
+  'on-hold':     { label: 'On Hold',      color: 'warning',   textClass: 'text-dark' },
+  'for-approval':{ label: 'For Approval', color: 'purple',    textClass: '' },
+  review:        { label: 'Review',       color: 'warning',   textClass: 'text-dark' },
+  done:          { label: 'Done',         color: 'success',   textClass: '' },
 }
 
 export const PRIORITY_ICONS = {
