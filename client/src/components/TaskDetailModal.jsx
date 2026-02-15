@@ -117,6 +117,59 @@ export default function TaskDetailModal({ task, onClose, onSave, onDelete }) {
                     ))}
                   </div>
                 </div>
+
+                {/* Comments */}
+                <div className="mt-4">
+                  <h6 className="text-muted text-uppercase small mb-2">
+                    Comments {comments.length > 0 && <span className="badge bg-secondary ms-1">{comments.length}</span>}
+                  </h6>
+                  {comments.length === 0 ? (
+                    <p className="text-muted small fst-italic">No comments yet.</p>
+                  ) : (
+                    <div className="d-flex flex-column gap-2 mb-3">
+                      {comments.map(c => (
+                        <div key={c.id} className="border rounded p-2 bg-light">
+                          <div className="d-flex justify-content-between align-items-center mb-1">
+                            <span className={`badge owner-badge owner-${c.author}`}>{c.author}</span>
+                            <span className="text-muted" style={{ fontSize: '0.75rem' }}>
+                              {new Date(c.created_at).toLocaleString()}
+                            </span>
+                          </div>
+                          <p className="mb-0 small" style={{ whiteSpace: 'pre-wrap' }}>{c.body}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <form onSubmit={handleAddComment}>
+                    <div className="d-flex gap-2 mb-2">
+                      <select
+                        className="form-select form-select-sm"
+                        style={{ maxWidth: '140px' }}
+                        value={commentAuthor}
+                        onChange={e => setCommentAuthor(e.target.value)}
+                      >
+                        {OWNERS.map(o => <option key={o} value={o}>{o}</option>)}
+                      </select>
+                    </div>
+                    <div className="mb-2">
+                      <textarea
+                        className="form-control form-control-sm"
+                        rows={2}
+                        placeholder="Add a comment…"
+                        value={commentBody}
+                        onChange={e => setCommentBody(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <button
+                      type="submit"
+                      className="btn btn-sm btn-primary"
+                      disabled={commentSubmitting || !commentBody.trim()}
+                    >
+                      {commentSubmitting ? 'Posting…' : 'Post Comment'}
+                    </button>
+                  </form>
+                </div>
               </div>
             )}
           </div>
