@@ -1,8 +1,11 @@
 import TaskCard from './TaskCard'
 
 const COLUMNS = [
+  { key: 'new',          label: 'New',          color: 'info'      },
   { key: 'backlog',      label: 'Backlog',      color: 'secondary' },
   { key: 'in-progress',  label: 'In Progress',  color: 'primary'   },
+  { key: 'on-hold',      label: 'On Hold',      color: 'warning'   },
+  { key: 'for-approval', label: 'For Approval', color: 'purple'    },
   { key: 'review',       label: 'Review',       color: 'warning'   },
   { key: 'done',         label: 'Done',         color: 'success'   },
 ]

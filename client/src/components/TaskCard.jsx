@@ -1,4 +1,4 @@
-import { STATUS_COLORS, PRIORITY_ICONS } from '../constants'
+import { STATUS_COLORS, STATUS_META, PRIORITY_ICONS } from '../constants'
 import EffortBadge from './EffortBadge'
 
 export default function TaskCard({ task, onClick }) {
@@ -36,8 +36,8 @@ export default function TaskCard({ task, onClick }) {
               >{task.description}</p>
             )}
             <div className="d-flex flex-wrap gap-1 align-items-center">
-              <span className={`badge status-badge bg-${STATUS_COLORS[task.status] || 'secondary'}`}>
-                {task.status}
+              <span className={`badge status-badge bg-${STATUS_COLORS[task.status] || 'secondary'} ${(STATUS_META[task.status] || {}).textClass || ''}`}>
+                {(STATUS_META[task.status] || {}).label || task.status}
               </span>
               <span className={`badge owner-badge owner-${task.owner}`}>
                 {task.owner}

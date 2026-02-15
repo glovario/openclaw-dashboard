@@ -80,3 +80,20 @@ body {
 .kanban-column-body .task-card {
   cursor: pointer;
 }
+
+/* Custom purple status colour (for-approval) */
+.text-bg-purple, .btn-purple, .bg-purple {
+  background-color: #6f42c1 !important;
+  color: #fff !important;
+}
+.btn-outline-purple {
+  color: #6f42c1;
+  border-color: #6f42c1;
+}
+.btn-outline-purple:hover {
+  background-color: #6f42c1;
+  color: #fff;
+}
+.badge.bg-purple {
+  background-color: #6f42c1 !important;
+}

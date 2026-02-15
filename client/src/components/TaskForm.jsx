@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { STATUSES, OWNERS, PRIORITIES, EFFORTS, EFFORT_META } from '../constants'
 
 const DEFAULTS = {
-  title: '', description: '', status: 'backlog',
+  title: '', description: '', status: 'new',
   owner: 'matt', priority: 'medium',
   estimated_token_effort: 'unknown',
   github_url: '', tags: ''

@@ -43,13 +43,13 @@ router.get('/:id', async (req, res) => {
 
 // POST /api/tasks
 router.post('/', async (req, res) => {
-  const { title, description = '', status = 'backlog', owner = 'matt',
+  const { title, description = '', status = 'new', owner = 'matt',
           priority = 'medium', github_url = '', tags = '',
           estimated_token_effort = 'unknown' } = req.body;
 
   if (!title) return res.status(400).json({ ok: false, error: 'title is required' });
 
-  const validStatus   = ['backlog','in-progress','review','done'];
+  const validStatus   = ['new','backlog','in-progress','on-hold','for-approval','review','done'];
   const validOwner    = ['norman','ada','mason','atlas','bard','matt','team'];
   const validPriority = ['low','medium','high'];
   const validEffort   = ['unknown','small','medium','large'];
