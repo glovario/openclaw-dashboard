@@ -35,7 +35,7 @@ export default function FilterBar({ filters, onChange, onClear }) {
       <div className="col-6 col-sm-3 col-md-2">
         <select className="form-select" value={filters.effort || ''} onChange={e => set('effort', e.target.value)}>
           <option value="">All effort</option>
-          {EFFORTS.map(e => <option key={e} value={e}>⚡ {e}</option>)}
+          {EFFORTS.map(e => <option key={e} value={e}>{e === 'unknown' ? '? Unknown' : `⚡ ${e}`}</option>)}
         </select>
       </div>
       <div className="col-6 col-sm-3 col-md-auto">

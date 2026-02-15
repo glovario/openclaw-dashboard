@@ -15,7 +15,9 @@ export default function EffortBadge({ effort, compact = true }) {
       title={meta.title}
       style={{ fontSize: '0.68rem', letterSpacing: '0.03em' }}
     >
-      {compact ? `⚡${meta.label}` : `⚡ ${meta.full}`}
+      {compact
+        ? (effort === 'unknown' ? `?` : `⚡${meta.label}`)
+        : (effort === 'unknown' ? `? ${meta.full}` : `⚡ ${meta.full}`)}
     </span>
   )
 }

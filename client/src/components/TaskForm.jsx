@@ -4,7 +4,7 @@ import { STATUSES, OWNERS, PRIORITIES, EFFORTS, EFFORT_META } from '../constants
 const DEFAULTS = {
   title: '', description: '', status: 'backlog',
   owner: 'matt', priority: 'medium',
-  estimated_token_effort: '',   // intentionally blank → forces user to choose
+  estimated_token_effort: 'unknown',
   github_url: '', tags: ''
 }
 
@@ -23,7 +23,6 @@ export default function TaskForm({ task, onSave, onCancel }) {
   const handleSubmit = async e => {
     e.preventDefault()
     if (!form.title.trim())              { setError('Title is required'); return }
-    if (!form.estimated_token_effort)    { setError('Token effort estimate is required'); return }
     setSaving(true)
     setError(null)
     try {
@@ -86,7 +85,7 @@ export default function TaskForm({ task, onSave, onCancel }) {
 
       <div className="mb-3">
         <label className="form-label fw-semibold">
-          Token Effort *{' '}
+          Token Effort{' '}
           <span className="text-muted fw-normal small">— how many tokens will this take?</span>
         </label>
         <div className="d-flex gap-2 flex-wrap">
@@ -101,17 +100,16 @@ export default function TaskForm({ task, onSave, onCancel }) {
                 onClick={() => set('estimated_token_effort', e)}
                 title={meta.title}
               >
-                ⚡ {e.charAt(0).toUpperCase() + e.slice(1)}
-                <span className="d-none d-sm-inline text-opacity-75 ms-1" style={{ fontSize: '0.75em' }}>
-                  {e === 'small' ? '(<2k)' : e === 'medium' ? '(2k–8k)' : '(8k+)'}
-                </span>
+                {e === 'unknown' ? '? Unknown' : `⚡ ${e.charAt(0).toUpperCase() + e.slice(1)}`}
+                {e !== 'unknown' && (
+                  <span className="d-none d-sm-inline text-opacity-75 ms-1" style={{ fontSize: '0.75em' }}>
+                    {e === 'small' ? '(<2k)' : e === 'medium' ? '(2k–8k)' : '(8k+)'}
+                  </span>
+                )}
               </button>
             )
           })}
         </div>
-        {!form.estimated_token_effort && (
-          <div className="form-text text-danger">Required — select a tier above.</div>
-        )}
       </div>
 
       <div className="mb-3">
