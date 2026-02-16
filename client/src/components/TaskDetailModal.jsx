@@ -128,6 +128,7 @@ export default function TaskDetailModal({ task, onClose, onSave, onDelete }) {
                 <div className="text-muted small mb-4 d-flex flex-wrap gap-3">
                   <span>📅 Created: {new Date(task.created_at).toLocaleString()}</span>
                   <span>✏️ Updated: {new Date(task.updated_at).toLocaleString()}</span>
+                  {task.created_by && <span>👤 Created by: {task.created_by}</span>}
                 </div>
 
                 {/* Quick status change */}
