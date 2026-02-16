@@ -20,7 +20,6 @@ async function getDb() {
     _db = new SQL.Database();
   }
 
-  // Enable WAL-like behaviour (sql.js is in-memory, we persist on write)
   _db.run(`
     CREATE TABLE IF NOT EXISTS tasks (
       id                      INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -48,14 +47,35 @@ async function getDb() {
     )
   `);
 
-  // Migration: add columns to existing DBs that predate these fields
-  try {
-    _db.run(`ALTER TABLE tasks ADD COLUMN estimated_token_effort TEXT NOT NULL DEFAULT 'unknown'`);
-  } catch (_) { /* column already exists — safe to ignore */ }
+  // OC-032: Task history / audit log
+  // Note: sql.js does not support DEFAULT (datetime('now')) — changed_at is set explicitly on insert
+  _db.run(`
+    CREATE TABLE IF NOT EXISTS task_history (
+      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      task_id     INTEGER NOT NULL,
+      changed_by  TEXT NOT NULL DEFAULT 'system',
+      field_name  TEXT NOT NULL,
+      old_value   TEXT,
+      new_value   TEXT,
+      changed_at  TEXT NOT NULL DEFAULT ''
+    )
+  `);
 
-  try {
-    _db.run(`ALTER TABLE tasks ADD COLUMN display_id TEXT`);
-  } catch (_) { /* column already exists — safe to ignore */ }
+  // OC-033: Task dependencies
+  _db.run(`
+    CREATE TABLE IF NOT EXISTS task_dependencies (
+      id                 INTEGER PRIMARY KEY AUTOINCREMENT,
+      task_id            INTEGER NOT NULL,
+      blocked_by_task_id INTEGER NOT NULL,
+      UNIQUE(task_id, blocked_by_task_id)
+    )
+  `);
+
+  // Migrations: add columns to existing DBs
+  try { _db.run(`ALTER TABLE tasks ADD COLUMN estimated_token_effort TEXT NOT NULL DEFAULT 'unknown'`); } catch (_) {}
+  try { _db.run(`ALTER TABLE tasks ADD COLUMN display_id TEXT`); } catch (_) {}
+  // OC-044: created_by
+  try { _db.run(`ALTER TABLE tasks ADD COLUMN created_by TEXT NOT NULL DEFAULT 'unknown'`); } catch (_) {}
 
   // Backfill display_id for any tasks that don't have one yet
   const untagged = [];
@@ -65,7 +85,6 @@ async function getDb() {
     stmt.free();
   }
   if (untagged.length > 0) {
-    // Find the highest existing sequence number
     const stmt2 = _db.prepare(`SELECT display_id FROM tasks WHERE display_id IS NOT NULL`);
     let maxSeq = 0;
     while (stmt2.step()) {
@@ -91,14 +110,12 @@ function persist() {
   fs.writeFileSync(DB_PATH, Buffer.from(data));
 }
 
-// Helper: run a query and persist
 function run(sql, params = []) {
   if (!_db) throw new Error('DB not initialised');
   _db.run(sql, params);
   persist();
 }
 
-// Helper: get all rows as objects
 function all(sql, params = []) {
   if (!_db) throw new Error('DB not initialised');
   const stmt = _db.prepare(sql);
@@ -111,13 +128,11 @@ function all(sql, params = []) {
   return rows;
 }
 
-// Helper: get single row
 function get(sql, params = []) {
   const rows = all(sql, params);
   return rows[0] || null;
 }
 
-// Helper: run and return last insert rowid
 function insert(sql, params = []) {
   if (!_db) throw new Error('DB not initialised');
   _db.run(sql, params);

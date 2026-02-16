@@ -58,6 +58,9 @@ export default function TaskCard({ task, onClick }) {
                 {PRIORITY_ICONS[task.priority]}
               </span>
               <EffortBadge effort={task.estimated_token_effort} compact />
+              {task.is_blocked ? (
+                <span className="badge bg-danger" title="Blocked by unresolved dependency">&#x1F6AB; Blocked</span>
+              ) : null}
               {tags.map(tag => (
                 <span key={tag} className="badge rounded-pill bg-light text-dark border tag-pill">
                   {tag}

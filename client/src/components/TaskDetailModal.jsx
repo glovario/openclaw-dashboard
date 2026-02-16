@@ -2,7 +2,7 @@ import { STATUS_COLORS, STATUS_META, PRIORITY_ICONS, OWNERS } from '../constants
 import TaskForm from './TaskForm'
 import EffortBadge from './EffortBadge'
 import { useState, useEffect } from 'react'
-import { fetchComments, addComment } from '../api'
+import { fetchComments, addComment, fetchHistory, fetchDependencies, addDependency, removeDependency } from '../api'
 
 export default function TaskDetailModal({ task, onClose, onSave, onDelete }) {
   const [editing, setEditing] = useState(false)
@@ -12,9 +12,20 @@ export default function TaskDetailModal({ task, onClose, onSave, onDelete }) {
   const [commentBody, setCommentBody] = useState('')
   const [commentSubmitting, setCommentSubmitting] = useState(false)
 
+  // OC-032: history
+  const [history, setHistory] = useState([])
+
+  // OC-033: dependencies
+  const [deps, setDeps] = useState({ blocked_by: [], blocking: [] })
+  const [addingDep, setAddingDep] = useState(false)
+  const [depInput, setDepInput] = useState('')
+  const [depError, setDepError] = useState('')
+
   useEffect(() => {
     if (!task) return
     fetchComments(task.id).then(setComments).catch(() => {})
+    fetchHistory(task.id).then(setHistory).catch(() => {})
+    fetchDependencies(task.id).then(d => setDeps({ blocked_by: d.blocked_by || [], blocking: d.blocking || [] })).catch(() => {})
   }, [task?.id])
 
   if (!task) return null
@@ -47,6 +58,55 @@ export default function TaskDetailModal({ task, onClose, onSave, onDelete }) {
     }
   }
 
+  const handleAddDep = async e => {
+    e.preventDefault()
+    setDepError('')
+    const val = depInput.trim()
+    if (!val) return
+    const numId = /^\d+$/.test(val) ? parseInt(val, 10) : null
+    const displayMatch = val.match(/^OC-(\d+)$/i)
+    if (!numId && !displayMatch) {
+      setDepError('Enter a task ID (number) or display ID (e.g. OC-042)')
+      return
+    }
+    setAddingDep(true)
+    try {
+      let targetId = numId
+      if (!targetId && displayMatch) {
+        const res = await fetch('/api/tasks?limit=500', {
+          headers: { 'X-API-Key': window.__DASHBOARD_API_KEY__ || '' }
+        })
+        const data = await res.json()
+        const match = data.tasks && data.tasks.find(t => t.display_id && t.display_id.toLowerCase() === val.toLowerCase())
+        if (!match) { setDepError(`Task ${val} not found`); setAddingDep(false); return }
+        targetId = match.id
+      }
+      await addDependency(task.id, targetId)
+      const d = await fetchDependencies(task.id)
+      setDeps({ blocked_by: d.blocked_by || [], blocking: d.blocking || [] })
+      setDepInput('')
+    } catch (err) {
+      setDepError(err.message)
+    } finally {
+      setAddingDep(false)
+    }
+  }
+
+  const handleRemoveDep = async (depId) => {
+    try {
+      await removeDependency(task.id, depId)
+      const d = await fetchDependencies(task.id)
+      setDeps({ blocked_by: d.blocked_by || [], blocking: d.blocking || [] })
+    } catch (err) {
+      alert('Failed to remove dependency: ' + err.message)
+    }
+  }
+
+  const formatHistoryField = (field) => {
+    if (field === '_created') return 'Created'
+    return field.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+  }
+
   return (
     <div className="modal show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,.5)' }}>
       <div className="modal-dialog modal-lg modal-dialog-scrollable">
@@ -60,6 +120,7 @@ export default function TaskDetailModal({ task, onClose, onSave, onDelete }) {
                       {task.display_id}
                     </span>
                   )}
+                  {task.is_blocked ? <span className="badge bg-danger" title="Blocked">🚫</span> : null}
                   {task.title}
                 </>
               )}
@@ -76,6 +137,7 @@ export default function TaskDetailModal({ task, onClose, onSave, onDelete }) {
                   <span className={`badge owner-badge owner-${task.owner}`}>{task.owner}</span>
                   <span title={`Priority: ${task.priority}`}>{PRIORITY_ICONS[task.priority]} {task.priority}</span>
                   <EffortBadge effort={task.estimated_token_effort} compact={false} />
+                  {task.is_blocked ? <span className="badge bg-danger">🚫 Blocked</span> : null}
                 </div>
 
                 {task.description && (
@@ -106,11 +168,11 @@ export default function TaskDetailModal({ task, onClose, onSave, onDelete }) {
                 )}
 
                 <div className="text-muted small mt-3">
+                  {task.created_by && <div>Created by: <strong>{task.created_by}</strong></div>}
                   <div>Created: {new Date(task.created_at).toLocaleString()}</div>
                   <div>Updated: {new Date(task.updated_at).toLocaleString()}</div>
                 </div>
 
-                {/* Quick status change */}
                 <div className="mt-3">
                   <h6 className="text-muted text-uppercase small mb-2">Quick status</h6>
                   <div className="btn-group btn-group-sm flex-wrap gap-1" role="group">
@@ -125,6 +187,62 @@ export default function TaskDetailModal({ task, onClose, onSave, onDelete }) {
                       </button>
                     ))}
                   </div>
+                </div>
+
+                {/* OC-033: Dependencies */}
+                <div className="mt-4">
+                  <h6 className="text-muted text-uppercase small mb-2">Dependencies</h6>
+                  {deps.blocked_by.length > 0 && (
+                    <div className="mb-2">
+                      <div className="small text-muted mb-1">Blocked by:</div>
+                      {deps.blocked_by.map(t => (
+                        <div key={t.dep_id} className="d-flex align-items-center gap-2 mb-1">
+                          <span className={`badge bg-${STATUS_COLORS[t.status] || 'secondary'}`}>{t.status}</span>
+                          <span className="small">
+                            {t.display_id && <span className="text-muted me-1" style={{ fontFamily: 'monospace', fontSize: '0.7rem' }}>{t.display_id}</span>}
+                            {t.title}
+                          </span>
+                          <button
+                            className="btn btn-sm btn-outline-danger py-0 px-1 ms-auto"
+                            style={{ fontSize: '0.7rem' }}
+                            onClick={() => handleRemoveDep(t.dep_id)}
+                            title="Remove dependency"
+                          >x</button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {deps.blocking.length > 0 && (
+                    <div className="mb-2">
+                      <div className="small text-muted mb-1">Blocking:</div>
+                      {deps.blocking.map(t => (
+                        <div key={t.dep_id} className="d-flex align-items-center gap-2 mb-1">
+                          <span className={`badge bg-${STATUS_COLORS[t.status] || 'secondary'}`}>{t.status}</span>
+                          <span className="small">
+                            {t.display_id && <span className="text-muted me-1" style={{ fontFamily: 'monospace', fontSize: '0.7rem' }}>{t.display_id}</span>}
+                            {t.title}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {deps.blocked_by.length === 0 && deps.blocking.length === 0 && (
+                    <p className="text-muted small fst-italic">No dependencies.</p>
+                  )}
+                  <form className="d-flex gap-2 mt-2" onSubmit={handleAddDep}>
+                    <input
+                      type="text"
+                      className="form-control form-control-sm"
+                      placeholder="Block by task ID or OC-XXX"
+                      value={depInput}
+                      onChange={e => setDepInput(e.target.value)}
+                      style={{ maxWidth: '220px' }}
+                    />
+                    <button type="submit" className="btn btn-sm btn-outline-secondary" disabled={addingDep}>
+                      {addingDep ? '...' : '+ Add'}
+                    </button>
+                  </form>
+                  {depError && <div className="text-danger small mt-1">{depError}</div>}
                 </div>
 
                 {/* Comments */}
@@ -164,7 +282,7 @@ export default function TaskDetailModal({ task, onClose, onSave, onDelete }) {
                       <textarea
                         className="form-control form-control-sm"
                         rows={2}
-                        placeholder="Add a comment…"
+                        placeholder="Add a comment..."
                         value={commentBody}
                         onChange={e => setCommentBody(e.target.value)}
                         required
@@ -175,9 +293,45 @@ export default function TaskDetailModal({ task, onClose, onSave, onDelete }) {
                       className="btn btn-sm btn-primary"
                       disabled={commentSubmitting || !commentBody.trim()}
                     >
-                      {commentSubmitting ? 'Posting…' : 'Post Comment'}
+                      {commentSubmitting ? 'Posting...' : 'Post Comment'}
                     </button>
                   </form>
+                </div>
+
+                {/* OC-032: History timeline */}
+                <div className="mt-4">
+                  <h6 className="text-muted text-uppercase small mb-2">
+                    History {history.length > 0 && <span className="badge bg-secondary ms-1">{history.length}</span>}
+                  </h6>
+                  {history.length === 0 ? (
+                    <p className="text-muted small fst-italic">No history yet.</p>
+                  ) : (
+                    <div className="d-flex flex-column gap-1">
+                      {[...history].reverse().map(h => (
+                        <div key={h.id} className="d-flex gap-2 align-items-start" style={{ fontSize: '0.8rem' }}>
+                          <span className="text-muted" style={{ minWidth: '130px', fontSize: '0.72rem', paddingTop: '2px' }}>
+                            {new Date(h.changed_at).toLocaleString()}
+                          </span>
+                          <div>
+                            <span className={`badge owner-badge owner-${h.changed_by} me-1`}>{h.changed_by}</span>
+                            {h.field_name === '_created' ? (
+                              <span>created this task</span>
+                            ) : (
+                              <span>
+                                changed <strong>{formatHistoryField(h.field_name)}</strong>
+                                {h.old_value != null && (
+                                  <span> from <code className="small">{h.old_value}</code></span>
+                                )}
+                                {h.new_value != null && (
+                                  <span> to <code className="small">{h.new_value}</code></span>
+                                )}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -189,7 +343,7 @@ export default function TaskDetailModal({ task, onClose, onSave, onDelete }) {
                 onClick={handleDelete}
                 disabled={deleting}
               >
-                {deleting ? 'Deleting…' : 'Delete'}
+                {deleting ? 'Deleting...' : 'Delete'}
               </button>
               <div className="d-flex gap-2">
                 <button className="btn btn-outline-secondary" onClick={onClose}>Close</button>
