@@ -56,6 +56,10 @@ async function getDb() {
     _db.run(`ALTER TABLE tasks ADD COLUMN display_id TEXT`);
   } catch (_) { /* column already exists — safe to ignore */ }
 
+  try {
+    _db.run(`ALTER TABLE tasks ADD COLUMN created_by TEXT NOT NULL DEFAULT 'unknown'`);
+  } catch (_) { /* column already exists — safe to ignore */ }
+
   // Backfill display_id for any tasks that don't have one yet
   const untagged = [];
   {

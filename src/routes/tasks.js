@@ -45,7 +45,7 @@ router.get('/:id', async (req, res) => {
 router.post('/', async (req, res) => {
   const { title, description = '', status = 'new', owner = 'matt',
           priority = 'medium', github_url = '', tags = '',
-          estimated_token_effort = 'unknown' } = req.body;
+          estimated_token_effort = 'unknown', created_by = 'matt' } = req.body;
 
   if (!title) return res.status(400).json({ ok: false, error: 'title is required' });
 
@@ -71,9 +71,9 @@ router.post('/', async (req, res) => {
     const displayId = `OC-${String(nextSeq).padStart(3, '0')}`;
 
     const id = db.insert(
-      `INSERT INTO tasks (title, description, status, owner, priority, github_url, tags, estimated_token_effort, display_id)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [title, description, status, owner, priority, github_url, tags, estimated_token_effort, displayId]
+      `INSERT INTO tasks (title, description, status, owner, priority, github_url, tags, estimated_token_effort, display_id, created_by)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [title, description, status, owner, priority, github_url, tags, estimated_token_effort, displayId, created_by]
     );
     const task = db.get('SELECT * FROM tasks WHERE id = ?', [id]);
     res.status(201).json({ ok: true, task });
