@@ -29,7 +29,7 @@ export default function App() {
     setError(null)
     try {
       const result = await fetchTasks({ limit: 500, ...paginationOverride })
-      setAllTasks(result.tasks)
+      setAllTasks(Array.isArray(result) ? result : (result.tasks || []))
       setPagination({ total: result.total, limit: result.limit, offset: result.offset })
     } catch (e) {
       setError(e.message)
