@@ -2,6 +2,35 @@ const express = require('express');
 const path = require('path');
 const crypto = require('crypto');
 const fs = require('fs');
+const rateLimit = require('express-rate-limit');
+
+// --- Rate Limiting ---
+function isLocalhost(req) {
+  const ip = req.ip || req.connection.remoteAddress || '';
+  return ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1';
+}
+
+function dynamicLimit(localMax, externalMax) {
+  return (req, res, next) => {
+    const max = isLocalhost(req) ? localMax : externalMax;
+    return rateLimit({
+      windowMs: 60 * 1000,
+      max,
+      standardHeaders: true,
+      legacyHeaders: false,
+      handler: (req, res) => {
+        const retryAfter = Math.ceil((req.rateLimit.resetTime - Date.now()) / 1000);
+        console.warn(`[rate-limit] ${req.method} ${req.path} - IP ${req.ip} exceeded limit (${max}/min)`);
+        res.set('Retry-After', retryAfter);
+        res.status(429).json({ ok: false, error: 'Too Many Requests', retryAfter });
+      },
+      skip: () => false,
+    })(req, res, next);
+  };
+}
+
+const readLimiter = dynamicLimit(500, 100);
+const writeLimiter = dynamicLimit(500, 30);
 
 const app = express();
 const PORT = process.env.PORT || 3420;
@@ -46,6 +75,14 @@ app.use('/api', (req, res, next) => {
     return res.status(403).json({ ok: false, error: 'Invalid API key' });
   }
   next();
+});
+
+// Apply rate limiting to /api/* routes based on HTTP method
+app.use('/api', (req, res, next) => {
+  if (req.method === 'GET' || req.method === 'HEAD') {
+    return readLimiter(req, res, next);
+  }
+  return writeLimiter(req, res, next);
 });
 
 // Routes

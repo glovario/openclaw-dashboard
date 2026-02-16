@@ -32,6 +32,7 @@ async function getDb() {
       github_url              TEXT DEFAULT '',
       tags                    TEXT DEFAULT '',
       estimated_token_effort  TEXT NOT NULL DEFAULT 'unknown',
+      display_id              TEXT,
       created_at              TEXT NOT NULL DEFAULT (datetime('now')),
       updated_at              TEXT NOT NULL DEFAULT (datetime('now'))
     )
