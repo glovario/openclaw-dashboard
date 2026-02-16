@@ -32,6 +32,7 @@ async function getDb() {
       github_url              TEXT DEFAULT '',
       tags                    TEXT DEFAULT '',
       estimated_token_effort  TEXT NOT NULL DEFAULT 'unknown',
+      display_id              TEXT,
       created_at              TEXT NOT NULL DEFAULT (datetime('now')),
       updated_at              TEXT NOT NULL DEFAULT (datetime('now'))
     )
@@ -47,6 +48,29 @@ async function getDb() {
     )
   `);
 
+  // OC-032: Task history / audit log
+  _db.run(`
+    CREATE TABLE IF NOT EXISTS task_history (
+      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      task_id     INTEGER NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+      changed_by  TEXT NOT NULL DEFAULT 'system',
+      field_name  TEXT NOT NULL,
+      old_value   TEXT,
+      new_value   TEXT,
+      changed_at  TEXT NOT NULL DEFAULT (datetime('now'))
+    )
+  `);
+
+  // OC-033: Task dependencies
+  _db.run(`
+    CREATE TABLE IF NOT EXISTS task_dependencies (
+      id                INTEGER PRIMARY KEY AUTOINCREMENT,
+      task_id           INTEGER NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+      blocked_by_task_id INTEGER NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+      UNIQUE(task_id, blocked_by_task_id)
+    )
+  `);
+
   // Migration: add columns to existing DBs that predate these fields
   try {
     _db.run(`ALTER TABLE tasks ADD COLUMN estimated_token_effort TEXT NOT NULL DEFAULT 'unknown'`);
@@ -54,6 +78,11 @@ async function getDb() {
 
   try {
     _db.run(`ALTER TABLE tasks ADD COLUMN display_id TEXT`);
+  } catch (_) { /* column already exists — safe to ignore */ }
+
+  // OC-044: created_by migration
+  try {
+    _db.run(`ALTER TABLE tasks ADD COLUMN created_by TEXT NOT NULL DEFAULT 'unknown'`);
   } catch (_) { /* column already exists — safe to ignore */ }
 
   // Backfill display_id for any tasks that don't have one yet
