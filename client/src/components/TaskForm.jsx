@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { STATUSES, OWNERS, PRIORITIES, EFFORTS, EFFORT_META } from '../constants'
+import { STATUSES, OWNERS, PRIORITIES, EFFORTS, EFFORT_META, STATUS_META } from '../constants'
 
 const DEFAULTS = {
   title: '', description: '', status: 'new',
@@ -22,7 +22,7 @@ export default function TaskForm({ task, onSave, onCancel }) {
 
   const handleSubmit = async e => {
     e.preventDefault()
-    if (!form.title.trim())              { setError('Title is required'); return }
+    if (!form.title.trim()) { setError('Title is required'); return }
     setSaving(true)
     setError(null)
     try {
@@ -37,56 +37,79 @@ export default function TaskForm({ task, onSave, onCancel }) {
 
   return (
     <form onSubmit={handleSubmit} noValidate>
-      {error && <div className="alert alert-danger py-2 mb-3">{error}</div>}
+      {error && <div className="alert alert-danger py-2 mb-4">{error}</div>}
 
+      {/* Title & Description */}
       <div className="mb-3">
-        <label className="form-label fw-semibold">Title *</label>
+        <label className="form-label fw-semibold">
+          Title <span className="text-danger">*</span>
+        </label>
         <input
-          className="form-control"
+          className="form-control form-control-lg"
           value={form.title}
           onChange={e => set('title', e.target.value)}
-          placeholder="Task title"
+          placeholder="What needs to be done?"
           required
           autoFocus
+          style={{ fontSize: '1rem' }}
         />
       </div>
 
-      <div className="mb-3">
+      <div className="mb-4">
         <label className="form-label fw-semibold">Description</label>
         <textarea
           className="form-control"
-          rows={3}
+          rows={4}
           value={form.description}
           onChange={e => set('description', e.target.value)}
-          placeholder="Optional description…"
+          placeholder="Add more detail, context, or acceptance criteria…"
         />
       </div>
 
-      <div className="row g-3 mb-3">
-        <div className="col-sm-4">
-          <label className="form-label fw-semibold">Status</label>
-          <select className="form-select" value={form.status} onChange={e => set('status', e.target.value)}>
-            {STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
-          </select>
-        </div>
-        <div className="col-sm-4">
-          <label className="form-label fw-semibold">Owner</label>
-          <select className="form-select" value={form.owner} onChange={e => set('owner', e.target.value)}>
-            {OWNERS.map(o => <option key={o} value={o}>{o}</option>)}
-          </select>
-        </div>
-        <div className="col-sm-4">
-          <label className="form-label fw-semibold">Priority</label>
-          <select className="form-select" value={form.priority} onChange={e => set('priority', e.target.value)}>
-            {PRIORITIES.map(p => <option key={p} value={p}>{p}</option>)}
-          </select>
+      {/* Core attributes — 3-column grid */}
+      <div className="p-3 rounded mb-4" style={{ background: 'var(--color-surface)' }}>
+        <div className="modal-section-label mb-3">Task Attributes</div>
+        <div className="row g-3">
+          <div className="col-sm-4">
+            <label className="form-label fw-semibold small">Status</label>
+            <select
+              className="form-select"
+              value={form.status}
+              onChange={e => set('status', e.target.value)}
+            >
+              {STATUSES.map(s => (
+                <option key={s} value={s}>{STATUS_META[s]?.label || s}</option>
+              ))}
+            </select>
+          </div>
+          <div className="col-sm-4">
+            <label className="form-label fw-semibold small">Owner</label>
+            <select
+              className="form-select"
+              value={form.owner}
+              onChange={e => set('owner', e.target.value)}
+            >
+              {OWNERS.map(o => <option key={o} value={o}>{o}</option>)}
+            </select>
+          </div>
+          <div className="col-sm-4">
+            <label className="form-label fw-semibold small">Priority</label>
+            <select
+              className="form-select"
+              value={form.priority}
+              onChange={e => set('priority', e.target.value)}
+            >
+              {PRIORITIES.map(p => <option key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</option>)}
+            </select>
+          </div>
         </div>
       </div>
 
-      <div className="mb-3">
+      {/* Token Effort */}
+      <div className="mb-4">
         <label className="form-label fw-semibold">
           Token Effort{' '}
-          <span className="text-muted fw-normal small">— how many tokens will this take?</span>
+          <span className="text-muted fw-normal small">— estimated complexity</span>
         </label>
         <div className="d-flex gap-2 flex-wrap">
           {EFFORTS.map(e => {
@@ -112,36 +135,41 @@ export default function TaskForm({ task, onSave, onCancel }) {
         </div>
       </div>
 
-      <div className="mb-3">
-        <label className="form-label fw-semibold">GitHub URL</label>
-        <input
-          className="form-control"
-          type="url"
-          value={form.github_url}
-          onChange={e => set('github_url', e.target.value)}
-          placeholder="https://github.com/org/repo/issues/1"
-        />
+      {/* GitHub & Tags */}
+      <div className="row g-3 mb-4">
+        <div className="col-md-6">
+          <label className="form-label fw-semibold small">GitHub URL</label>
+          <input
+            className="form-control"
+            type="url"
+            value={form.github_url}
+            onChange={e => set('github_url', e.target.value)}
+            placeholder="https://github.com/org/repo/pull/1"
+          />
+        </div>
+        <div className="col-md-6">
+          <label className="form-label fw-semibold small">
+            Tags{' '}
+            <span className="text-muted fw-normal">(comma-separated)</span>
+          </label>
+          <input
+            className="form-control"
+            value={form.tags}
+            onChange={e => set('tags', e.target.value)}
+            placeholder="frontend, api, bug"
+          />
+        </div>
       </div>
 
-      <div className="mb-4">
-        <label className="form-label fw-semibold">
-          Tags{' '}
-          <span className="text-muted fw-normal">(comma-separated)</span>
-        </label>
-        <input
-          className="form-control"
-          value={form.tags}
-          onChange={e => set('tags', e.target.value)}
-          placeholder="frontend, api, bug"
-        />
-      </div>
-
-      <div className="d-flex gap-2 justify-content-end">
+      {/* Actions */}
+      <div className="d-flex gap-2 justify-content-end pt-2 border-top">
         <button type="button" className="btn btn-outline-secondary" onClick={onCancel} disabled={saving}>
           Cancel
         </button>
-        <button type="submit" className="btn btn-primary" disabled={saving}>
-          {saving ? 'Saving…' : isEdit ? 'Save changes' : 'Create task'}
+        <button type="submit" className="btn btn-primary px-4" disabled={saving}>
+          {saving ? (
+            <><span className="spinner-border spinner-border-sm me-2" />Saving…</>
+          ) : isEdit ? 'Save Changes' : 'Create Task'}
         </button>
       </div>
     </form>
