@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { fetchTasks, createTask, updateTask, deleteTask } from './api'
+import { STATUSES, STATUS_META } from './constants'
 import FilterBar from './components/FilterBar'
 import TaskCard from './components/TaskCard'
 import KanbanBoard from './components/KanbanBoard'
@@ -18,13 +19,18 @@ export default function App() {
   const [showAdd, setShowAdd] = useState(false)
   const [viewMode, setViewMode] = useState('list') // 'list' | 'kanban'
 
-  // Always fetch ALL tasks; filtering is done client-side so counts stay accurate
-  const loadTasks = useCallback(async () => {
+  // OC-037: pagination state
+  const [pagination, setPagination] = useState({ total: 0, limit: 50, offset: 0 })
+
+  // Always fetch ALL tasks (high limit); filtering is done client-side so counts stay accurate
+  // OC-037: we pass limit/offset to support pagination
+  const loadTasks = useCallback(async (paginationOverride = {}) => {
     setLoading(true)
     setError(null)
     try {
-      const data = await fetchTasks({})
-      setAllTasks(data)
+      const result = await fetchTasks({ limit: 500, ...paginationOverride })
+      setAllTasks(result.tasks)
+      setPagination({ total: result.total, limit: result.limit, offset: result.offset })
     } catch (e) {
       setError(e.message)
     } finally {
@@ -87,12 +93,9 @@ export default function App() {
   }
 
   // Counts always come from allTasks (unfiltered)
-  const counts = {
-    backlog:       allTasks.filter(t => t.status === 'backlog').length,
-    'in-progress': allTasks.filter(t => t.status === 'in-progress').length,
-    review:        allTasks.filter(t => t.status === 'review').length,
-    done:          allTasks.filter(t => t.status === 'done').length,
-  }
+  const counts = Object.fromEntries(
+    STATUSES.map(s => [s, allTasks.filter(t => t.status === s).length])
+  )
 
   const handleSummaryCardClick = (key) => {
     setFilters(f => {
@@ -135,27 +138,40 @@ export default function App() {
       </nav>
 
       <div className="container-xl pb-5">
-        {/* Summary row */}
-        <div className="row g-3 mb-4">
-          {[
-            { label: 'Backlog',     key: 'backlog',      color: 'secondary' },
-            { label: 'In Progress', key: 'in-progress',  color: 'primary'   },
-            { label: 'Review',      key: 'review',       color: 'warning'   },
-            { label: 'Done',        key: 'done',         color: 'success'   },
-          ].map(({ label, key, color }) => (
-            <div key={key} className="col-6 col-md-3">
-              <div
-                className={`card text-bg-${color} h-100`}
-                style={{ cursor: 'pointer', opacity: filters.status === key ? 1 : (key === 'done' && filters.excludeDone ? 0.6 : 1) }}
-                onClick={() => handleSummaryCardClick(key)}
-              >
-                <div className="card-body py-3 text-center">
-                  <div className="display-6 fw-bold">{counts[key]}</div>
-                  <div className="small">{label}{key === 'done' && filters.excludeDone ? ' (hidden)' : ''}</div>
+        {/* OC-041: Status Summary Cards — all workflow states, dynamic from STATUS_META */}
+        <div className="row g-2 mb-4">
+          {STATUSES.map(key => {
+            const meta = STATUS_META[key]
+            const isDone = key === 'done'
+            const isHidden = isDone && filters.excludeDone && !filters.status
+            const isActive = filters.status === key
+            return (
+              <div key={key} className="col-6 col-sm-4 col-md-3 col-xl">
+                <div
+                  className={`card h-100 status-summary-card ${isActive ? `text-bg-${meta.color}` : 'border'}`}
+                  style={{
+                    cursor: 'pointer',
+                    opacity: isHidden ? 0.5 : 1,
+                    transition: 'all 0.15s ease',
+                    borderColor: isActive ? undefined : `var(--bs-${meta.color === 'purple' ? 'purple' : meta.color}-border-subtle, #dee2e6)`,
+                  }}
+                  onClick={() => handleSummaryCardClick(key)}
+                  title={isHidden ? `${meta.label} tasks are hidden by default — click to show` : `Filter by ${meta.label}`}
+                >
+                  <div className="card-body py-2 px-3 text-center">
+                    <div className={`fs-4 fw-bold ${isActive ? '' : `text-${meta.color === 'purple' ? '' : meta.color}`}`}
+                      style={isActive ? {} : meta.color === 'purple' ? { color: '#6f42c1' } : {}}>
+                      {counts[key]}
+                    </div>
+                    <div className={`small fw-semibold ${isActive ? '' : 'text-muted'}`} style={{ fontSize: '0.72rem', lineHeight: 1.3 }}>
+                      {meta.label}
+                      {isHidden && <span className="d-block" style={{ fontSize: '0.65rem', opacity: 0.75 }}>(hidden)</span>}
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
 
         <FilterBar
