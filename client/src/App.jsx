@@ -9,6 +9,7 @@ import AddTaskModal from './components/AddTaskModal'
 import SystemHealth from './components/SystemHealth'
 
 const DEFAULT_FILTERS = { excludeDone: true }
+const PAGE_SIZE = 12
 
 export default function App() {
   const [allTasks, setAllTasks] = useState([])
@@ -18,9 +19,7 @@ export default function App() {
   const [selected, setSelected] = useState(null)
   const [showAdd, setShowAdd] = useState(false)
   const [viewMode, setViewMode] = useState('list') // 'list' | 'kanban'
-
-  // OC-037: pagination state
-  const [pagination, setPagination] = useState({ total: 0, limit: 50, offset: 0 })
+  const [page, setPage] = useState(1)
 
   // Always fetch ALL tasks (high limit); filtering is done client-side so counts stay accurate
   // OC-037: we pass limit/offset to support pagination
@@ -30,7 +29,6 @@ export default function App() {
     try {
       const result = await fetchTasks({ limit: 500, ...paginationOverride })
       setAllTasks(Array.isArray(result) ? result : (result.tasks || []))
-      setPagination({ total: result.total, limit: result.limit, offset: result.offset })
     } catch (e) {
       setError(e.message)
     } finally {
@@ -71,8 +69,8 @@ export default function App() {
     return true
   })
 
-  const handleFiltersChange = (f) => setFilters(f)
-  const handleClearFilters = () => setFilters(DEFAULT_FILTERS)
+  const handleFiltersChange = (f) => { setFilters(f); setPage(1) }
+  const handleClearFilters = () => { setFilters(DEFAULT_FILTERS); setPage(1) }
 
   const handleAddSave = async (form) => {
     await createTask(form)
@@ -96,6 +94,11 @@ export default function App() {
   const counts = Object.fromEntries(
     STATUSES.map(s => [s, allTasks.filter(t => t.status === s).length])
   )
+
+  // OC-009: client-side pagination of filtered results
+  const totalPages = Math.max(1, Math.ceil(displayTasks.length / PAGE_SIZE))
+  const safePage = Math.min(page, totalPages)
+  const pagedTasks = displayTasks.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE)
 
   const handleSummaryCardClick = (key) => {
     setFilters(f => {
@@ -201,13 +204,30 @@ export default function App() {
         ) : viewMode === 'kanban' ? (
           <KanbanBoard tasks={displayTasks} onTaskClick={setSelected} />
         ) : (
-          <div className="row g-0">
-            {displayTasks.map(task => (
-              <div key={task.id} className="col-12 col-lg-6 col-xl-4 px-2">
-                <TaskCard task={task} onClick={setSelected} />
+          <>
+            <div className="row g-0">
+              {pagedTasks.map(task => (
+                <div key={task.id} className="col-12 col-lg-6 col-xl-4 px-2">
+                  <TaskCard task={task} onClick={setSelected} />
+                </div>
+              ))}
+            </div>
+            {totalPages > 1 && (
+              <div className="d-flex justify-content-center align-items-center gap-3 mt-4">
+                <button
+                  className="btn btn-outline-secondary btn-sm"
+                  disabled={safePage <= 1}
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                >← Previous</button>
+                <span className="text-muted small">Page {safePage} of {totalPages} ({displayTasks.length} tasks)</span>
+                <button
+                  className="btn btn-outline-secondary btn-sm"
+                  disabled={safePage >= totalPages}
+                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                >Next →</button>
               </div>
-            ))}
-          </div>
+            )}
+          </>
         )}
       </div>
 
