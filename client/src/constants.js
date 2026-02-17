@@ -1,5 +1,5 @@
 export const STATUSES   = ['new', 'backlog', 'in-progress', 'on-hold', 'for-approval', 'review', 'done']
-export const OWNERS     = ['norman', 'ada', 'mason', 'atlas', 'bard', 'matt', 'team']
+export const OWNERS     = ['norman', 'ada', 'mason', 'atlas', 'bard', 'quinn', 'juno', 'malik', 'priya', 'elias', 'rowan', 'asha', 'soren', 'elena', 'nia', 'theo', 'matt', 'team']
 export const PRIORITIES = ['high', 'medium', 'low']
 export const EFFORTS    = ['unknown', 'small', 'medium', 'large']
 
