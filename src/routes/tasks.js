@@ -41,15 +41,16 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// GET /api/tasks/:id/history — OC-099: return audit log for a task
+// GET /api/tasks/:id/history — OC-007.3: return audit log for a task
 router.get('/:id/history', async (req, res) => {
+  const limit = parseInt(req.query.limit, 10) || 50;
   try {
     await db.getDb();
     const task = db.get('SELECT id FROM tasks WHERE id = ?', [req.params.id]);
     if (!task) return res.status(404).json({ ok: false, error: 'Not found' });
     const history = db.all(
-      `SELECT * FROM task_history WHERE task_id = ? ORDER BY changed_at ASC`,
-      [req.params.id]
+      `SELECT * FROM task_history WHERE task_id = ? ORDER BY changed_at DESC LIMIT ?`,
+      [req.params.id, limit]
     );
     res.json({ ok: true, history });
   } catch (e) {
@@ -190,8 +191,8 @@ router.patch('/:id', async (req, res) => {
     const existing = db.get('SELECT * FROM tasks WHERE id = ?', [req.params.id]);
     if (!existing) return res.status(404).json({ ok: false, error: 'Not found' });
 
-    // Record history entries for each changed field (OC-099)
-    const author = req.body._author || 'system';
+    // Record history entries for each changed field (OC-007.2)
+    const author = req.headers['x-author'] || 'system';
     for (const field of updates) {
       const oldVal = existing[field] !== undefined ? String(existing[field]) : null;
       const newVal = req.body[field] !== undefined ? String(req.body[field]) : null;

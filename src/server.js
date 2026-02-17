@@ -2,6 +2,48 @@ const express = require('express');
 const path = require('path');
 const crypto = require('crypto');
 const fs = require('fs');
+const rateLimit = require('express-rate-limit');
+
+// --- Rate Limiting ---
+function isLocalhost(req) {
+  const ip = req.ip || (req.connection && req.connection.remoteAddress) || '';
+  return ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1';
+}
+
+function makeHandler(localMax, externalMax) {
+  return (req, res) => {
+    const cap = isLocalhost(req) ? localMax : externalMax;
+    const retryAfter = Math.ceil(
+      (req.rateLimit.resetTime - Date.now()) / 1000
+    );
+    console.warn(
+      `[rate-limit] ${req.method} ${req.path} — IP ${req.ip} exceeded ${cap} req/min`
+    );
+    res.set('Retry-After', String(retryAfter));
+    res.status(429).json({
+      ok: false,
+      error: 'Too Many Requests',
+      retryAfter,
+    });
+  };
+}
+
+// Single store per limiter; `limit` fn is evaluated per-request
+const readLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: (req) => isLocalhost(req) ? 500 : 100,  // GET: 100/min external, 500/min localhost
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: makeHandler(500, 100),
+});
+
+const writeLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: (req) => isLocalhost(req) ? 500 : 30,   // POST/PATCH/DELETE: 30/min external
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: makeHandler(500, 30),
+});
 
 const app = express();
 const PORT = process.env.PORT || 3420;
@@ -46,6 +88,15 @@ app.use('/api', (req, res, next) => {
     return res.status(403).json({ ok: false, error: 'Invalid API key' });
   }
   next();
+});
+
+// Apply rate limiting to /api/* routes based on HTTP method
+app.use('/api', (req, res, next) => {
+  if (req.method === 'GET') {
+    return readLimiter(req, res, next);
+  } else {
+    return writeLimiter(req, res, next);
+  }
 });
 
 // Routes
