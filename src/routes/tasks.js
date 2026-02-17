@@ -67,7 +67,7 @@ router.post('/', async (req, res) => {
   if (!title) return res.status(400).json({ ok: false, error: 'title is required' });
 
   const validStatus   = ['new','backlog','in-progress','on-hold','for-approval','review','done'];
-  const validOwner    = ['norman','ada','mason','atlas','bard','matt','team'];
+  const validOwner    = ['norman','ada','mason','atlas','bard','quinn','juno','malik','priya','elias','rowan','asha','soren','elena','nia','theo','matt','team'];
   const validPriority = ['low','medium','high'];
   const validEffort   = ['unknown','small','medium','large'];
 
