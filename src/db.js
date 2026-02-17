@@ -47,6 +47,17 @@ async function getDb() {
     )
   `);
 
+  // OC-104: sub-task support — tasks can be children of another task
+  _db.run(`
+    CREATE TABLE IF NOT EXISTS task_dependencies (
+      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      task_id     INTEGER NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+      blocked_by  INTEGER NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+      UNIQUE(task_id, blocked_by),
+      CHECK(task_id != blocked_by)
+    )
+  `);
+
   // Migration: add columns to existing DBs that predate these fields
   try {
     _db.run(`ALTER TABLE tasks ADD COLUMN estimated_token_effort TEXT NOT NULL DEFAULT 'unknown'`);
@@ -58,6 +69,11 @@ async function getDb() {
 
   try {
     _db.run(`ALTER TABLE tasks ADD COLUMN created_by TEXT NOT NULL DEFAULT 'unknown'`);
+  } catch (_) { /* column already exists — safe to ignore */ }
+
+  // OC-104: parent_id — migration for existing DBs
+  try {
+    _db.run(`ALTER TABLE tasks ADD COLUMN parent_id INTEGER REFERENCES tasks(id) ON DELETE SET NULL`);
   } catch (_) { /* column already exists — safe to ignore */ }
 
   // Backfill display_id for any tasks that don't have one yet
