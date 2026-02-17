@@ -53,8 +53,7 @@ export default function App() {
       const q = filters.search.toLowerCase()
       if (
         !task.title?.toLowerCase().includes(q) &&
-        !task.description?.toLowerCase().includes(q) &&
-        !(task.display_id || '').toLowerCase().includes(q)
+        !task.description?.toLowerCase().includes(q)
       ) return false
     }
 
