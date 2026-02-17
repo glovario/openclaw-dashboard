@@ -99,11 +99,27 @@ router.post('/', async (req, res) => {
 });
 
 // PATCH /api/tasks/:id
+// Allowed fields (OC-103): all editable task fields including created_by (OC-107)
 router.patch('/:id', async (req, res) => {
-  const allowed = ['title','description','status','owner','priority','github_url','tags','estimated_token_effort'];
+  const allowed = ['title','description','status','owner','priority','github_url','tags','estimated_token_effort','created_by'];
   const updates = Object.keys(req.body).filter(k => allowed.includes(k));
 
-  if (!updates.length) return res.status(400).json({ ok: false, error: 'No valid fields' });
+  if (!updates.length) return res.status(400).json({ ok: false, error: 'No valid fields to update' });
+
+  // Validate enum fields (OC-103)
+  const validStatus   = ['new','backlog','in-progress','on-hold','for-approval','review','done'];
+  const validOwner    = ['norman','ada','mason','atlas','bard','matt','team'];
+  const validPriority = ['low','medium','high'];
+  const validEffort   = ['unknown','small','medium','large'];
+
+  if (req.body.status !== undefined && !validStatus.includes(req.body.status))
+    return res.status(400).json({ ok: false, error: `Invalid status. Allowed: ${validStatus.join(', ')}` });
+  if (req.body.owner !== undefined && !validOwner.includes(req.body.owner))
+    return res.status(400).json({ ok: false, error: `Invalid owner. Allowed: ${validOwner.join(', ')}` });
+  if (req.body.priority !== undefined && !validPriority.includes(req.body.priority))
+    return res.status(400).json({ ok: false, error: `Invalid priority. Allowed: ${validPriority.join(', ')}` });
+  if (req.body.estimated_token_effort !== undefined && !validEffort.includes(req.body.estimated_token_effort))
+    return res.status(400).json({ ok: false, error: `Invalid estimated_token_effort. Allowed: ${validEffort.join(', ')}` });
 
   const setClause = updates.map(k => `${k} = ?`).join(', ');
   const values = [...updates.map(k => req.body[k]), req.params.id];
