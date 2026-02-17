@@ -47,6 +47,19 @@ async function getDb() {
     )
   `);
 
+  // OC-099: task_history — immutable audit log of every field change
+  _db.run(`
+    CREATE TABLE IF NOT EXISTS task_history (
+      id         INTEGER PRIMARY KEY AUTOINCREMENT,
+      task_id    INTEGER NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+      field_name TEXT NOT NULL,
+      old_value  TEXT,
+      new_value  TEXT,
+      author     TEXT NOT NULL DEFAULT 'system',
+      changed_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )
+  `);
+
   // OC-104: sub-task support — tasks can be children of another task
   _db.run(`
     CREATE TABLE IF NOT EXISTS task_dependencies (
