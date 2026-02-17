@@ -98,6 +98,15 @@ app.get('/', (req, res) => {
 app.use('/api', apiKeyAuth);
 app.use('/api', applyRateLimiting);
 
+// Apply rate limiting to /api/* routes based on HTTP method
+app.use('/api', (req, res, next) => {
+  if (req.method === 'GET') {
+    return readLimiter(req, res, next);
+  } else {
+    return writeLimiter(req, res, next);
+  }
+});
+
 // Routes
 app.use('/api/tasks', require('./routes/tasks'));
 app.use('/api/tasks/:id/comments', require('./routes/comments'));
