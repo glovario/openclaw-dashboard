@@ -61,7 +61,8 @@ router.get('/:id/history', async (req, res) => {
 router.post('/', async (req, res) => {
   const { title, description = '', status = 'new', owner = 'matt',
           priority = 'medium', github_url = '', tags = '',
-          estimated_token_effort = 'unknown', created_by = 'matt' } = req.body;
+          estimated_token_effort = 'unknown', created_by = 'matt',
+          parent_id = null } = req.body;
 
   if (!title) return res.status(400).json({ ok: false, error: 'title is required' });
 
@@ -86,10 +87,16 @@ router.post('/', async (req, res) => {
     }
     const displayId = `OC-${String(nextSeq).padStart(3, '0')}`;
 
+    // Validate parent_id if provided
+    if (parent_id !== null) {
+      const parent = db.get('SELECT id FROM tasks WHERE id = ?', [parent_id]);
+      if (!parent) return res.status(400).json({ ok: false, error: `parent_id ${parent_id} does not exist` });
+    }
+
     const id = db.insert(
-      `INSERT INTO tasks (title, description, status, owner, priority, github_url, tags, estimated_token_effort, display_id, created_by)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [title, description, status, owner, priority, github_url, tags, estimated_token_effort, displayId, created_by]
+      `INSERT INTO tasks (title, description, status, owner, priority, github_url, tags, estimated_token_effort, display_id, created_by, parent_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [title, description, status, owner, priority, github_url, tags, estimated_token_effort, displayId, created_by, parent_id]
     );
     const task = db.get('SELECT * FROM tasks WHERE id = ?', [id]);
     res.status(201).json({ ok: true, task });
@@ -98,10 +105,63 @@ router.post('/', async (req, res) => {
   }
 });
 
+// GET /api/tasks/:id/dependencies — OC-105: list blocked-by relationships
+router.get('/:id/dependencies', async (req, res) => {
+  try {
+    await db.getDb();
+    const task = db.get('SELECT id FROM tasks WHERE id = ?', [req.params.id]);
+    if (!task) return res.status(404).json({ ok: false, error: 'Not found' });
+    const deps = db.all(
+      `SELECT t.* FROM tasks t
+       JOIN task_dependencies d ON d.blocked_by = t.id
+       WHERE d.task_id = ?`,
+      [req.params.id]
+    );
+    res.json({ ok: true, dependencies: deps });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+// POST /api/tasks/:id/dependencies — add a blocked-by relationship
+router.post('/:id/dependencies', async (req, res) => {
+  const { blocked_by } = req.body;
+  if (!blocked_by) return res.status(400).json({ ok: false, error: 'blocked_by is required' });
+  const taskId = parseInt(req.params.id, 10);
+  const blockerId = parseInt(blocked_by, 10);
+  if (taskId === blockerId) return res.status(400).json({ ok: false, error: 'A task cannot depend on itself' });
+  try {
+    await db.getDb();
+    if (!db.get('SELECT id FROM tasks WHERE id = ?', [taskId]))
+      return res.status(404).json({ ok: false, error: 'Task not found' });
+    if (!db.get('SELECT id FROM tasks WHERE id = ?', [blockerId]))
+      return res.status(404).json({ ok: false, error: `Blocker task ${blockerId} not found` });
+    // Basic circular dependency guard (one level)
+    const reverse = db.get('SELECT id FROM task_dependencies WHERE task_id = ? AND blocked_by = ?', [blockerId, taskId]);
+    if (reverse) return res.status(400).json({ ok: false, error: 'Circular dependency detected' });
+    db.run('INSERT OR IGNORE INTO task_dependencies (task_id, blocked_by) VALUES (?, ?)', [taskId, blockerId]);
+    res.status(201).json({ ok: true });
+  } catch (e) {
+    res.status(400).json({ ok: false, error: e.message });
+  }
+});
+
+// DELETE /api/tasks/:id/dependencies/:blockerId — remove a blocked-by relationship
+router.delete('/:id/dependencies/:blockerId', async (req, res) => {
+  try {
+    await db.getDb();
+    db.run('DELETE FROM task_dependencies WHERE task_id = ? AND blocked_by = ?',
+      [req.params.id, req.params.blockerId]);
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
 // PATCH /api/tasks/:id
 // Allowed fields (OC-103): all editable task fields including created_by (OC-107)
 router.patch('/:id', async (req, res) => {
-  const allowed = ['title','description','status','owner','priority','github_url','tags','estimated_token_effort','created_by'];
+  const allowed = ['title','description','status','owner','priority','github_url','tags','estimated_token_effort','parent_id','created_by'];
   const updates = Object.keys(req.body).filter(k => allowed.includes(k));
 
   if (!updates.length) return res.status(400).json({ ok: false, error: 'No valid fields to update' });
