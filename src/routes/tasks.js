@@ -41,6 +41,22 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+// GET /api/tasks/:id/history — OC-099: return audit log for a task
+router.get('/:id/history', async (req, res) => {
+  try {
+    await db.getDb();
+    const task = db.get('SELECT id FROM tasks WHERE id = ?', [req.params.id]);
+    if (!task) return res.status(404).json({ ok: false, error: 'Not found' });
+    const history = db.all(
+      `SELECT * FROM task_history WHERE task_id = ? ORDER BY changed_at ASC`,
+      [req.params.id]
+    );
+    res.json({ ok: true, history });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
 // POST /api/tasks
 router.post('/', async (req, res) => {
   const { title, description = '', status = 'new', owner = 'matt',
@@ -94,8 +110,22 @@ router.patch('/:id', async (req, res) => {
 
   try {
     await db.getDb();
-    const existing = db.get('SELECT id FROM tasks WHERE id = ?', [req.params.id]);
+    // Fetch full row for field diffing (OC-099 audit log)
+    const existing = db.get('SELECT * FROM tasks WHERE id = ?', [req.params.id]);
     if (!existing) return res.status(404).json({ ok: false, error: 'Not found' });
+
+    // Record history entries for each changed field (OC-099)
+    const author = req.body._author || 'system';
+    for (const field of updates) {
+      const oldVal = existing[field] !== undefined ? String(existing[field]) : null;
+      const newVal = req.body[field] !== undefined ? String(req.body[field]) : null;
+      if (oldVal !== newVal) {
+        db.run(
+          `INSERT INTO task_history (task_id, field_name, old_value, new_value, author) VALUES (?, ?, ?, ?, ?)`,
+          [req.params.id, field, oldVal, newVal, author]
+        );
+      }
+    }
 
     db.run(
       `UPDATE tasks SET ${setClause}, updated_at = datetime('now') WHERE id = ?`,
