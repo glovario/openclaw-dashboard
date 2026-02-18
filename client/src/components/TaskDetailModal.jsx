@@ -175,19 +175,23 @@ export default function TaskDetailModal({ task, onClose, onSave, onDelete }) {
                     <p className="text-muted small fst-italic mb-3">No comments yet.</p>
                   ) : (
                     <div className="d-flex flex-column gap-2 mb-3">
-                      {comments.map(c => (
-                        <div key={c.id} className="comment-card">
-                          <div className="d-flex justify-content-between align-items-center mb-1">
-                            <span className={`badge owner-badge owner-${c.author}`}>{c.author}</span>
-                            <span className="text-muted" style={{ fontSize: '0.72rem' }}>
-                              {new Date(c.created_at).toLocaleString()}
-                            </span>
+                      {comments.map(c => {
+                        const authorLabel = c.author || 'unknown'
+                        const authorClass = String(authorLabel).toLowerCase()
+                        return (
+                          <div key={c.id} className="comment-card">
+                            <div className="d-flex justify-content-between align-items-center mb-1">
+                              <span className={`badge owner-badge owner-${authorClass}`}>{authorLabel}</span>
+                              <span className="text-muted" style={{ fontSize: '0.72rem' }}>
+                                {new Date(c.created_at).toLocaleString()}
+                              </span>
+                            </div>
+                            <p className="mb-0 small" style={{ whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
+                              {c.body}
+                            </p>
                           </div>
-                          <p className="mb-0 small" style={{ whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
-                            {c.body}
-                          </p>
-                        </div>
-                      ))}
+                        )
+                      })}
                     </div>
                   )}
 
@@ -240,6 +244,10 @@ export default function TaskDetailModal({ task, onClose, onSave, onDelete }) {
                       {historyExpanded ? 'Hide history' : 'Show history'}
                     </button>
                   </div>
+
+                  {!historyExpanded && (
+                    <p className="text-muted small fst-italic mb-2">History is collapsed. Click “Show history” to view change details.</p>
+                  )}
 
                   {historyExpanded && (
                     historyError ? (
