@@ -46,6 +46,8 @@ body {
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
+  background-color: #0d6efd !important;
+  color: #fff !important;
 }
 
 .owner-norman { background-color: var(--color-norman) !important; }
