@@ -119,7 +119,7 @@ If the variable is **not set**, a random 64-character hex key is generated at st
 | Field | Values |
 |-------|--------|
 | status | new · backlog · scope-and-design · in-progress · on-hold · for-approval · review · done |
-| owner | norman · ada · mason · atlas · bard · matt · team |
+| owner | norman · ada · mason · atlas · bard · quinn · juno · malik · priya · elias · rowan · asha · soren · elena · nia · theo · matt · team |
 | priority | high · medium · low |
 | estimated_token_effort | small (<2,000 tokens) · medium (2,000–8,000) · large (8,000+) — **required** at creation |
 

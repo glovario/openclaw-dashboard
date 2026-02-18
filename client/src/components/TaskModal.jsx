@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { OWNERS } from '../constants';
 
 const EMPTY = {
   title: '', description: '', status: 'backlog', owner: 'matt',
@@ -122,13 +123,11 @@ export default function TaskModal({ task, onSave, onDelete, onClose }) {
                 <div className="col-4">
                   <label className="form-label fw-semibold">Owner</label>
                   <select className="form-select" value={form.owner} onChange={set('owner')}>
-                    <option value="matt">Matt</option>
-                    <option value="norman">Norman</option>
-                    <option value="ada">Ada</option>
-                    <option value="mason">Mason</option>
-                    <option value="atlas">Atlas</option>
-                    <option value="bard">Bard</option>
-                    <option value="team">Team</option>
+                    {[...OWNERS].sort((a, b) => a.localeCompare(b)).map(owner => (
+                      <option key={owner} value={owner}>
+                        {owner.charAt(0).toUpperCase() + owner.slice(1)}
+                      </option>
+                    ))}
                   </select>
                 </div>
                 <div className="col-4">

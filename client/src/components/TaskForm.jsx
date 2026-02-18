@@ -93,7 +93,9 @@ export default function TaskForm({ task, onSave, onCancel }) {
               value={form.owner}
               onChange={e => set('owner', e.target.value)}
             >
-              {OWNERS.map(o => <option key={o} value={o}>{o}</option>)}
+              {[...OWNERS].sort((a, b) => a.localeCompare(b)).map(o => (
+                <option key={o} value={o}>{o.charAt(0).toUpperCase() + o.slice(1)}</option>
+              ))}
             </select>
           </div>
           <div className="col-sm-4">
