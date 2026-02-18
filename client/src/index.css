@@ -56,6 +56,24 @@ body {
 .owner-matt   { background-color: var(--color-matt)   !important; }
 .owner-team   { background-color: var(--color-team)   !important; }
 
+/* Ensure all history/comment authors are clearly colour-coded */
+.owner-system,
+.owner-unknown,
+.owner-juno,
+.owner-malik,
+.owner-priya,
+.owner-elias,
+.owner-rowan,
+.owner-asha,
+.owner-soren,
+.owner-elena,
+.owner-nia,
+.owner-theo,
+.owner-quinn {
+  background-color: #0d6efd !important;
+  color: #fff !important;
+}
+
 .tag-pill {
   font-size: 0.7rem;
 }

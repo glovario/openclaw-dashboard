@@ -4,8 +4,16 @@ function getApiKey() {
   return window.__DASHBOARD_API_KEY__ || ''
 }
 
+function getActor() {
+  return window.localStorage.getItem('dashboard_actor') || 'matt'
+}
+
 function authHeaders(extra = {}) {
   return { 'X-API-Key': getApiKey(), ...extra }
+}
+
+function writeHeaders(extra = {}) {
+  return authHeaders({ 'X-Author': getActor(), ...extra })
 }
 
 export async function apiFetch(path, options = {}) {
@@ -35,7 +43,7 @@ export async function fetchTasks(filters = {}) {
 export async function createTask(body) {
   const res = await fetch(BASE, {
     method: 'POST',
-    headers: authHeaders({ 'Content-Type': 'application/json' }),
+    headers: writeHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify(body)
   })
   const data = await res.json()
@@ -46,7 +54,7 @@ export async function createTask(body) {
 export async function updateTask(id, body) {
   const res = await fetch(`${BASE}/${id}`, {
     method: 'PATCH',
-    headers: authHeaders({ 'Content-Type': 'application/json' }),
+    headers: writeHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify(body)
   })
   const data = await res.json()
@@ -57,7 +65,7 @@ export async function updateTask(id, body) {
 export async function deleteTask(id) {
   const res = await fetch(`${BASE}/${id}`, {
     method: 'DELETE',
-    headers: authHeaders()
+    headers: writeHeaders()
   })
   const data = await res.json()
   if (!data.ok) throw new Error(data.error)
@@ -79,4 +87,11 @@ export async function addComment(taskId, body) {
   const data = await res.json()
   if (!data.ok) throw new Error(data.error)
   return data.comment
+}
+
+export async function fetchTaskHistory(taskId, limit = 50) {
+  const res = await fetch(`${BASE}/${taskId}/history?limit=${limit}`, { headers: authHeaders() })
+  const data = await res.json()
+  if (!data.ok) throw new Error(data.error)
+  return data.history || []
 }
