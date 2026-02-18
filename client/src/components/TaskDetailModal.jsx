@@ -2,7 +2,15 @@ import { STATUS_COLORS, STATUS_META, PRIORITY_ICONS, OWNERS } from '../constants
 import TaskForm from './TaskForm'
 import EffortBadge from './EffortBadge'
 import { useState, useEffect } from 'react'
-import { fetchComments, addComment, fetchTaskHistory, fetchTaskDependencies, fetchTasks } from '../api'
+import {
+  fetchComments,
+  addComment,
+  fetchTaskHistory,
+  fetchTaskDependencies,
+  fetchTasks,
+  addTaskDependency,
+  removeTaskDependency,
+} from '../api'
 
 /**
  * Modal that exposes task metadata, comments, history, and quick status controls.
@@ -17,10 +25,22 @@ export default function TaskDetailModal({ task, onClose, onSave, onDelete }) {
   const [historyExpanded, setHistoryExpanded] = useState(false)
   const [dependencies, setDependencies] = useState([])
   const [subtasks, setSubtasks] = useState([])
+  const [allTasks, setAllTasks] = useState([])
   const [dependencyError, setDependencyError] = useState('')
+  const [linkBusy, setLinkBusy] = useState(false)
+  const [newDependencyId, setNewDependencyId] = useState('')
+  const [newSubtaskId, setNewSubtaskId] = useState('')
   const [commentAuthor, setCommentAuthor] = useState(OWNERS[0])
   const [commentBody, setCommentBody] = useState('')
   const [commentSubmitting, setCommentSubmitting] = useState(false)
+
+  const refreshLinks = async () => {
+    setDependencyError('')
+    const [deps, tasks] = await Promise.all([fetchTaskDependencies(task.id), fetchTasks()])
+    setDependencies(deps || [])
+    setAllTasks(tasks || [])
+    setSubtasks((tasks || []).filter(t => Number(t.parent_id) === Number(task.id)))
+  }
 
   useEffect(() => {
     if (!task) return
@@ -28,21 +48,26 @@ export default function TaskDetailModal({ task, onClose, onSave, onDelete }) {
     setHistoryError('')
     setDependencyError('')
     setHistoryExpanded(false)
+    setNewDependencyId('')
+    setNewSubtaskId('')
+
     fetchTaskHistory(task.id)
       .then(setHistory)
       .catch(err => setHistoryError(err.message || 'Failed to load history'))
 
-    Promise.all([fetchTaskDependencies(task.id), fetchTasks()])
-      .then(([deps, allTasks]) => {
-        setDependencies(deps)
-        setSubtasks((allTasks || []).filter(t => Number(t.parent_id) === Number(task.id)))
-      })
-      .catch(err => setDependencyError(err.message || 'Failed to load dependencies/subtasks'))
+    refreshLinks().catch(err => setDependencyError(err.message || 'Failed to load dependencies/subtasks'))
   }, [task?.id])
 
   if (!task) return null
 
   const tags = task.tags ? task.tags.split(',').map(t => t.trim()).filter(Boolean) : []
+  const dependencyIds = new Set(dependencies.map(d => Number(d.id)))
+  const dependencyCandidates = allTasks
+    .filter(t => Number(t.id) !== Number(task.id) && !dependencyIds.has(Number(t.id)))
+    .sort((a, b) => String(a.display_id || a.id).localeCompare(String(b.display_id || b.id)))
+  const subtaskCandidates = allTasks
+    .filter(t => Number(t.id) !== Number(task.id) && Number(t.parent_id || 0) !== Number(task.id))
+    .sort((a, b) => String(a.display_id || a.id).localeCompare(String(b.display_id || b.id)))
 
   const handleSave = async form => {
     await onSave(task.id, form)
@@ -67,6 +92,62 @@ export default function TaskDetailModal({ task, onClose, onSave, onDelete }) {
       alert('Failed to add comment: ' + err.message)
     } finally {
       setCommentSubmitting(false)
+    }
+  }
+
+  const handleAddDependency = async () => {
+    if (!newDependencyId) return
+    setLinkBusy(true)
+    setDependencyError('')
+    try {
+      await addTaskDependency(task.id, Number(newDependencyId))
+      setNewDependencyId('')
+      await refreshLinks()
+    } catch (err) {
+      setDependencyError(err.message || 'Failed to add dependency')
+    } finally {
+      setLinkBusy(false)
+    }
+  }
+
+  const handleRemoveDependency = async (blockerId) => {
+    setLinkBusy(true)
+    setDependencyError('')
+    try {
+      await removeTaskDependency(task.id, blockerId)
+      await refreshLinks()
+    } catch (err) {
+      setDependencyError(err.message || 'Failed to remove dependency')
+    } finally {
+      setLinkBusy(false)
+    }
+  }
+
+  const handleLinkSubtask = async () => {
+    if (!newSubtaskId) return
+    setLinkBusy(true)
+    setDependencyError('')
+    try {
+      await onSave(Number(newSubtaskId), { parent_id: task.id })
+      setNewSubtaskId('')
+      await refreshLinks()
+    } catch (err) {
+      setDependencyError(err.message || 'Failed to link sub-task')
+    } finally {
+      setLinkBusy(false)
+    }
+  }
+
+  const handleUnlinkSubtask = async (subtaskId) => {
+    setLinkBusy(true)
+    setDependencyError('')
+    try {
+      await onSave(subtaskId, { parent_id: null })
+      await refreshLinks()
+    } catch (err) {
+      setDependencyError(err.message || 'Failed to unlink sub-task')
+    } finally {
+      setLinkBusy(false)
     }
   }
 
@@ -181,17 +262,43 @@ export default function TaskDetailModal({ task, onClose, onSave, onDelete }) {
 
                   <div className="mb-3">
                     <div className="small fw-semibold text-muted mb-1">Blocked by</div>
+                    <div className="d-flex gap-2 mb-2">
+                      <select
+                        className="form-select form-select-sm"
+                        value={newDependencyId}
+                        onChange={e => setNewDependencyId(e.target.value)}
+                        disabled={linkBusy}
+                      >
+                        <option value="">Add blocking dependency…</option>
+                        {dependencyCandidates.map(opt => (
+                          <option key={opt.id} value={opt.id}>{opt.display_id || `#${opt.id}`} — {opt.title}</option>
+                        ))}
+                      </select>
+                      <button type="button" className="btn btn-sm btn-outline-primary" onClick={handleAddDependency} disabled={linkBusy || !newDependencyId}>
+                        Add
+                      </button>
+                    </div>
                     {dependencies.length === 0 ? (
                       <p className="text-muted small fst-italic mb-0">No blocking dependencies.</p>
                     ) : (
                       <div className="d-flex flex-column gap-2">
                         {dependencies.map(dep => (
                           <div key={dep.id} className="comment-card py-2">
-                            <div className="d-flex justify-content-between align-items-center">
+                            <div className="d-flex justify-content-between align-items-center gap-2">
                               <span className="small fw-semibold">{dep.display_id || `#${dep.id}`} — {dep.title}</span>
-                              <span className={`badge bg-${STATUS_COLORS[dep.status] || 'secondary'}`}>
-                                {STATUS_META[dep.status]?.label || dep.status}
-                              </span>
+                              <div className="d-flex align-items-center gap-2">
+                                <span className={`badge bg-${STATUS_COLORS[dep.status] || 'secondary'}`}>
+                                  {STATUS_META[dep.status]?.label || dep.status}
+                                </span>
+                                <button
+                                  type="button"
+                                  className="btn btn-sm btn-outline-danger"
+                                  onClick={() => handleRemoveDependency(dep.id)}
+                                  disabled={linkBusy}
+                                >
+                                  Remove
+                                </button>
+                              </div>
                             </div>
                           </div>
                         ))}
@@ -201,17 +308,43 @@ export default function TaskDetailModal({ task, onClose, onSave, onDelete }) {
 
                   <div>
                     <div className="small fw-semibold text-muted mb-1">Sub-tasks</div>
+                    <div className="d-flex gap-2 mb-2">
+                      <select
+                        className="form-select form-select-sm"
+                        value={newSubtaskId}
+                        onChange={e => setNewSubtaskId(e.target.value)}
+                        disabled={linkBusy}
+                      >
+                        <option value="">Link existing task as sub-task…</option>
+                        {subtaskCandidates.map(opt => (
+                          <option key={opt.id} value={opt.id}>{opt.display_id || `#${opt.id}`} — {opt.title}</option>
+                        ))}
+                      </select>
+                      <button type="button" className="btn btn-sm btn-outline-primary" onClick={handleLinkSubtask} disabled={linkBusy || !newSubtaskId}>
+                        Link
+                      </button>
+                    </div>
                     {subtasks.length === 0 ? (
                       <p className="text-muted small fst-italic mb-0">No sub-tasks linked to this task.</p>
                     ) : (
                       <div className="d-flex flex-column gap-2">
                         {subtasks.map(st => (
                           <div key={st.id} className="comment-card py-2">
-                            <div className="d-flex justify-content-between align-items-center">
+                            <div className="d-flex justify-content-between align-items-center gap-2">
                               <span className="small fw-semibold">{st.display_id || `#${st.id}`} — {st.title}</span>
-                              <span className={`badge bg-${STATUS_COLORS[st.status] || 'secondary'}`}>
-                                {STATUS_META[st.status]?.label || st.status}
-                              </span>
+                              <div className="d-flex align-items-center gap-2">
+                                <span className={`badge bg-${STATUS_COLORS[st.status] || 'secondary'}`}>
+                                  {STATUS_META[st.status]?.label || st.status}
+                                </span>
+                                <button
+                                  type="button"
+                                  className="btn btn-sm btn-outline-danger"
+                                  onClick={() => handleUnlinkSubtask(st.id)}
+                                  disabled={linkBusy}
+                                >
+                                  Unlink
+                                </button>
+                              </div>
                             </div>
                           </div>
                         ))}
