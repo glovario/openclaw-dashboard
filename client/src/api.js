@@ -102,3 +102,24 @@ export async function fetchTaskDependencies(taskId) {
   if (!data.ok) throw new Error(data.error)
   return data.dependencies || []
 }
+
+export async function addTaskDependency(taskId, blockedById) {
+  const res = await fetch(`${BASE}/${taskId}/dependencies`, {
+    method: 'POST',
+    headers: writeHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ blocked_by: blockedById })
+  })
+  const data = await res.json()
+  if (!data.ok) throw new Error(data.error)
+  return true
+}
+
+export async function removeTaskDependency(taskId, blockerId) {
+  const res = await fetch(`${BASE}/${taskId}/dependencies/${blockerId}`, {
+    method: 'DELETE',
+    headers: writeHeaders()
+  })
+  const data = await res.json()
+  if (!data.ok) throw new Error(data.error)
+  return true
+}
