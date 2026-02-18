@@ -10,6 +10,10 @@ const ICONS = {
   team:   '👥',
 };
 
+/**
+ * Displays a badge for an owner with an emoji prefix.
+ * @param {{owner:string, className?:string}} props
+ */
 export default function OwnerBadge({ owner, className = '' }) {
   return (
     <span className={`badge owner-${owner} ${className}`}>

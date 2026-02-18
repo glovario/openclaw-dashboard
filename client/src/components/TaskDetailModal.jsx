@@ -4,6 +4,10 @@ import EffortBadge from './EffortBadge'
 import { useState, useEffect } from 'react'
 import { fetchComments, addComment } from '../api'
 
+/**
+ * Modal that exposes task metadata, comments, and quick status controls.
+ * @param {{task:Object, onClose:function, onSave:function, onDelete:function}} props
+ */
 export default function TaskDetailModal({ task, onClose, onSave, onDelete }) {
   const [editing, setEditing] = useState(false)
   const [deleting, setDeleting] = useState(false)

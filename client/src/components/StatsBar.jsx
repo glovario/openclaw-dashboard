@@ -1,5 +1,9 @@
 import React from 'react';
 
+/**
+ * Summary bar showing backlog/in-progress/review/done counts.
+ * @param {{tasks:array}} props
+ */
 export default function StatsBar({ tasks }) {
   const counts = {
     backlog:      tasks.filter(t => t.status === 'backlog').length,

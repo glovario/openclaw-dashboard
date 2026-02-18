@@ -8,6 +8,10 @@ const DEFAULTS = {
   github_url: '', tags: ''
 }
 
+/**
+ * Controlled form for creating or editing a task record (used in modals).
+ * @param {{task:Object|null, onSave:function, onCancel:function}} props
+ */
 export default function TaskForm({ task, onSave, onCancel }) {
   const [form, setForm] = useState(DEFAULTS)
   const [saving, setSaving] = useState(false)

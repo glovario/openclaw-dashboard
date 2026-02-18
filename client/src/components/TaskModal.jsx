@@ -5,6 +5,10 @@ const EMPTY = {
   priority: 'medium', github_url: '', tags: '',
 };
 
+/**
+ * Legacy modal used by the kanban list to create or edit tasks inline.
+ * @param {{task:Object|null, onSave:function, onDelete:function, onClose:function}} props
+ */
 export default function TaskModal({ task, onSave, onDelete, onClose }) {
   const [form, setForm]   = useState(EMPTY);
   const [saving, setSaving] = useState(false);

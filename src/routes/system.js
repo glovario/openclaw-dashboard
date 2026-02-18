@@ -47,6 +47,10 @@ function pingService(url) {
   });
 }
 
+/**
+ * GET /api/system/health
+ * Returns CPU/memory/disk stats plus gateway + dashboard service checks.
+ */
 router.get('/health', async (req, res) => {
   try {
     const [cpuPct, disk, gateway, dashboard] = await Promise.all([

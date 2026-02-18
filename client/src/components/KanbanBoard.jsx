@@ -1,5 +1,8 @@
 import TaskCard from './TaskCard'
 
+/**
+ * Layout definition for the kanban board columns. Maintains label/color per status.
+ */
 const COLUMNS = [
   { key: 'new',          label: 'New',          color: 'info'      },
   { key: 'backlog',      label: 'Backlog',      color: 'secondary' },
@@ -10,6 +13,10 @@ const COLUMNS = [
   { key: 'done',         label: 'Done',         color: 'success'   },
 ]
 
+/**
+ * Renders the kanban board with cards grouped by status.
+ * @param {{tasks:array, onTaskClick:function}} props
+ */
 export default function KanbanBoard({ tasks, onTaskClick }) {
   return (
     <div className="row g-3 kanban-board">

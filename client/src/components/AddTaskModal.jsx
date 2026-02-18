@@ -1,5 +1,9 @@
 import TaskForm from './TaskForm'
 
+/**
+ * Modal wrapper that renders `TaskForm` for creating a new task.
+ * @param {{onClose:function, onSave:function}} props
+ */
 export default function AddTaskModal({ onClose, onSave }) {
   return (
     <div className="modal show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,.5)' }}>
