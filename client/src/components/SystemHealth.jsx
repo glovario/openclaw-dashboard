@@ -56,6 +56,9 @@ function ServiceStatus({ label, info }) {
   )
 }
 
+/**
+ * Fetches `/api/system/health` every 30s and renders the popover summary for the header.
+ */
 export default function SystemHealth() {
   const [data, setData] = useState(null)
   const [error, setError] = useState(null)

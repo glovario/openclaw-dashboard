@@ -2,7 +2,11 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 
-// GET /api/tasks — list all, with optional filters
+/**
+ * GET /api/tasks
+ * Returns the list of tasks with optional filters (status, owner, priority, estimated_token_effort, search).
+ * Results are ordered by priority (high → low) then most recently updated.
+ */
 router.get('/', async (req, res) => {
   const { status, owner, priority, search, estimated_token_effort } = req.query;
   let sql = 'SELECT * FROM tasks WHERE 1=1';
@@ -29,7 +33,10 @@ router.get('/', async (req, res) => {
   }
 });
 
-// GET /api/tasks/:id
+/**
+ * GET /api/tasks/:id
+ * Returns the details for the requested task id (404 when missing).
+ */
 router.get('/:id', async (req, res) => {
   try {
     await db.getDb();
@@ -41,7 +48,10 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// GET /api/tasks/:id/history — OC-007.3: return audit log for a task
+/**
+ * GET /api/tasks/:id/history
+ * Returns up to `limit` field-change entries for the task audit log (default 50).
+ */
 router.get('/:id/history', async (req, res) => {
   const limit = parseInt(req.query.limit, 10) || 50;
   try {
@@ -58,7 +68,11 @@ router.get('/:id/history', async (req, res) => {
   }
 });
 
-// POST /api/tasks
+/**
+ * POST /api/tasks
+ * Creates a new task. Required body: title + enums (status, owner, priority, estimated_token_effort).
+ * Automatically generates display_id and validates parent_id when provided.
+ */
 router.post('/', async (req, res) => {
   const { title, description = '', status = 'new', owner = 'matt',
           priority = 'medium', github_url = '', tags = '',
@@ -106,7 +120,10 @@ router.post('/', async (req, res) => {
   }
 });
 
-// GET /api/tasks/:id/dependencies — OC-105: list blocked-by relationships
+/**
+ * GET /api/tasks/:id/dependencies
+ * Returns tasks that the given task depends on (blocked_by relationships).
+ */
 router.get('/:id/dependencies', async (req, res) => {
   try {
     await db.getDb();
@@ -124,7 +141,10 @@ router.get('/:id/dependencies', async (req, res) => {
   }
 });
 
-// POST /api/tasks/:id/dependencies — add a blocked-by relationship
+/**
+ * POST /api/tasks/:id/dependencies
+ * Adds a blocked-by relationship (task cannot depend on itself or create immediate circular links).
+ */
 router.post('/:id/dependencies', async (req, res) => {
   const { blocked_by } = req.body;
   if (!blocked_by) return res.status(400).json({ ok: false, error: 'blocked_by is required' });
@@ -147,7 +167,10 @@ router.post('/:id/dependencies', async (req, res) => {
   }
 });
 
-// DELETE /api/tasks/:id/dependencies/:blockerId — remove a blocked-by relationship
+/**
+ * DELETE /api/tasks/:id/dependencies/:blockerId
+ * Removes a blocked-by link, implicitly allowing the task to unblock.
+ */
 router.delete('/:id/dependencies/:blockerId', async (req, res) => {
   try {
     await db.getDb();
@@ -159,8 +182,11 @@ router.delete('/:id/dependencies/:blockerId', async (req, res) => {
   }
 });
 
-// PATCH /api/tasks/:id
-// Allowed fields (OC-103): all editable task fields including created_by (OC-107)
+/**
+ * PATCH /api/tasks/:id
+ * Updates editable task fields (title, status, owner, priority, github_url, tags, estimated effort, parent, created_by).
+ * Rejects invalid enums and records history entries for each change.
+ */
 router.patch('/:id', async (req, res) => {
   const allowed = ['title','description','status','owner','priority','github_url','tags','estimated_token_effort','parent_id','created_by'];
   const updates = Object.keys(req.body).filter(k => allowed.includes(k));
@@ -215,7 +241,10 @@ router.patch('/:id', async (req, res) => {
   }
 });
 
-// DELETE /api/tasks/:id
+/**
+ * DELETE /api/tasks/:id
+ * Drops the task and cascades dependent data (history, comments, dependencies).
+ */
 router.delete('/:id', async (req, res) => {
   try {
     await db.getDb();

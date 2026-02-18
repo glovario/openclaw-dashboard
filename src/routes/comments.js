@@ -2,7 +2,10 @@ const express = require('express');
 const router = express.Router({ mergeParams: true });
 const db = require('../db');
 
-// GET /api/tasks/:id/comments
+/**
+ * GET /api/tasks/:id/comments
+ * Lists comments for a task in creation order.
+ */
 router.get('/', async (req, res) => {
   try {
     await db.getDb();
@@ -18,7 +21,10 @@ router.get('/', async (req, res) => {
   }
 });
 
-// POST /api/tasks/:id/comments
+/**
+ * POST /api/tasks/:id/comments
+ * Adds a comment to the task. Requires author + body.
+ */
 router.post('/', async (req, res) => {
   const { author, body } = req.body;
   if (!author) return res.status(400).json({ ok: false, error: 'author is required' });

@@ -1,5 +1,9 @@
 import { STATUSES, OWNERS, PRIORITIES, EFFORTS } from '../constants'
 
+/**
+ * Filter row for the kanban/task list. Holds status, owner, priority, effort, and search inputs.
+ * @param {{filters:Object, onChange:function, onClear:function}} props
+ */
 export default function FilterBar({ filters, onChange, onClear }) {
   const set = (key, val) => {
     const updated = { ...filters, [key]: val }

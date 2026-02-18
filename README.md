@@ -210,3 +210,11 @@ gh secret set DASHBOARD_API_KEY --repo glovario/openclaw-dashboard --body "<your
 Or via GitHub UI: **Settings → Secrets and variables → Actions → New repository secret**
 
 The workflow uses `http://192.168.1.124:3420` as the dashboard base URL (LAN address). Update `DASHBOARD_BASE_URL` in the workflow if this changes.
+
+## Documentation
+
+See the new reference docs under the `docs/` directory:
+
+- `docs/api-reference.md` covers authentication, rate limiting, and every `/api/*` route with example payloads.
+- `docs/schema.md` mirrors the SQLite schema (`tasks`, `comments`, `task_history`, `task_dependencies`) plus migration notes for derived columns like `display_id`, `created_by`, and `parent_id`.
+- `docs/utilities.md` explains the helper scripts (`npm run seed`, `create_tasks.sh`, `create_tasks2.sh`) used to seed the database or push synthetic workloads.

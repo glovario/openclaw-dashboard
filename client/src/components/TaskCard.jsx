@@ -1,6 +1,10 @@
 import { STATUS_COLORS, STATUS_META, PRIORITY_ICONS } from '../constants'
 import EffortBadge from './EffortBadge'
 
+/**
+ * Clickable card summarizing a task for the kanban board.
+ * @param {{task:Object, onClick:function}} props
+ */
 export default function TaskCard({ task, onClick }) {
   const tags = task.tags ? task.tags.split(',').map(t => t.trim()).filter(Boolean) : []
 
