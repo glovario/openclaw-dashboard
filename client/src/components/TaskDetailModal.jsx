@@ -30,6 +30,8 @@ export default function TaskDetailModal({ task, onClose, onSave, onDelete }) {
   const [linkBusy, setLinkBusy] = useState(false)
   const [newDependencyId, setNewDependencyId] = useState('')
   const [newSubtaskId, setNewSubtaskId] = useState('')
+  const [dependencyQuery, setDependencyQuery] = useState('')
+  const [subtaskQuery, setSubtaskQuery] = useState('')
   const [commentAuthor, setCommentAuthor] = useState(OWNERS[0])
   const [commentBody, setCommentBody] = useState('')
   const [commentSubmitting, setCommentSubmitting] = useState(false)
@@ -50,6 +52,8 @@ export default function TaskDetailModal({ task, onClose, onSave, onDelete }) {
     setHistoryExpanded(false)
     setNewDependencyId('')
     setNewSubtaskId('')
+    setDependencyQuery('')
+    setSubtaskQuery('')
 
     fetchTaskHistory(task.id)
       .then(setHistory)
@@ -64,9 +68,19 @@ export default function TaskDetailModal({ task, onClose, onSave, onDelete }) {
   const dependencyIds = new Set(dependencies.map(d => Number(d.id)))
   const dependencyCandidates = allTasks
     .filter(t => Number(t.id) !== Number(task.id) && !dependencyIds.has(Number(t.id)))
+    .filter(t => {
+      const q = dependencyQuery.trim().toLowerCase()
+      if (!q) return true
+      return String(t.display_id || `#${t.id}`).toLowerCase().includes(q) || String(t.title || '').toLowerCase().includes(q)
+    })
     .sort((a, b) => String(a.display_id || a.id).localeCompare(String(b.display_id || b.id)))
   const subtaskCandidates = allTasks
     .filter(t => Number(t.id) !== Number(task.id) && Number(t.parent_id || 0) !== Number(task.id))
+    .filter(t => {
+      const q = subtaskQuery.trim().toLowerCase()
+      if (!q) return true
+      return String(t.display_id || `#${t.id}`).toLowerCase().includes(q) || String(t.title || '').toLowerCase().includes(q)
+    })
     .sort((a, b) => String(a.display_id || a.id).localeCompare(String(b.display_id || b.id)))
 
   const handleSave = async form => {
@@ -262,6 +276,13 @@ export default function TaskDetailModal({ task, onClose, onSave, onDelete }) {
 
                   <div className="mb-3">
                     <div className="small fw-semibold text-muted mb-1">Blocked by</div>
+                    <input
+                      className="form-control form-control-sm mb-2"
+                      placeholder="Type OC-### or title to narrow dependencies…"
+                      value={dependencyQuery}
+                      onChange={e => setDependencyQuery(e.target.value)}
+                      disabled={linkBusy}
+                    />
                     <div className="d-flex gap-2 mb-2">
                       <select
                         className="form-select form-select-sm"
@@ -308,6 +329,13 @@ export default function TaskDetailModal({ task, onClose, onSave, onDelete }) {
 
                   <div>
                     <div className="small fw-semibold text-muted mb-1">Sub-tasks</div>
+                    <input
+                      className="form-control form-control-sm mb-2"
+                      placeholder="Type OC-### or title to narrow sub-task candidates…"
+                      value={subtaskQuery}
+                      onChange={e => setSubtaskQuery(e.target.value)}
+                      disabled={linkBusy}
+                    />
                     <div className="d-flex gap-2 mb-2">
                       <select
                         className="form-select form-select-sm"
