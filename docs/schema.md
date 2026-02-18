@@ -10,7 +10,7 @@ The dashboard uses an on-disk `sql.js` (SQLite in WASM) database persisted at `d
 | `id` | INTEGER PRIMARY KEY AUTOINCREMENT | Internal identifier used by the API and dependencies.
 | `title` | TEXT NOT NULL | Task title.
 | `description` | TEXT DEFAULT '' | Markdown-friendly description.
-| `status` | TEXT NOT NULL DEFAULT 'backlog' | Enum: `new`, `backlog`, `in-progress`, `on-hold`, `for-approval`, `review`, `done`.
+| `status` | TEXT NOT NULL DEFAULT 'backlog' | Enum: `new`, `backlog`, `scope-and-design`, `in-progress`, `on-hold`, `for-approval`, `review`, `done`.
 | `owner` | TEXT NOT NULL DEFAULT 'matt' | Enum of agent/owner handles (e.g. `norman`, `bard`, `team`).
 | `priority` | TEXT NOT NULL DEFAULT 'medium' | `low`, `medium`, `high`.
 | `github_url` | TEXT DEFAULT '' | Optional link to related PR/issue.

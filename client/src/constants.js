@@ -1,4 +1,4 @@
-export const STATUSES   = ['new', 'backlog', 'in-progress', 'on-hold', 'for-approval', 'review', 'done']
+export const STATUSES   = ['new', 'backlog', 'scope-and-design', 'in-progress', 'on-hold', 'for-approval', 'review', 'done']
 export const OWNERS     = ['norman', 'ada', 'mason', 'atlas', 'bard', 'quinn', 'juno', 'malik', 'priya', 'elias', 'rowan', 'asha', 'soren', 'elena', 'nia', 'theo', 'matt', 'team']
 export const PRIORITIES = ['high', 'medium', 'low']
 export const EFFORTS    = ['unknown', 'small', 'medium', 'large']
@@ -6,6 +6,7 @@ export const EFFORTS    = ['unknown', 'small', 'medium', 'large']
 export const STATUS_COLORS = {
   new:           'info',
   backlog:       'secondary',
+  'scope-and-design': 'info',
   'in-progress': 'primary',
   'on-hold':     'warning',
   'for-approval':'purple',
@@ -16,6 +17,7 @@ export const STATUS_COLORS = {
 export const STATUS_META = {
   new:           { label: 'New',          color: 'info',      textClass: 'text-dark' },
   backlog:       { label: 'Backlog',      color: 'secondary', textClass: '' },
+  'scope-and-design': { label: 'Scope & Design', color: 'info', textClass: 'text-dark' },
   'in-progress': { label: 'In Progress',  color: 'primary',   textClass: '' },
   'on-hold':     { label: 'On Hold',      color: 'warning',   textClass: 'text-dark' },
   'for-approval':{ label: 'For Approval', color: 'purple',    textClass: '' },

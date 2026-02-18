@@ -26,7 +26,7 @@ This document supplements the `README.md` section about the OpenClaw Dashboard A
 ### `POST /api/tasks`
 - **Purpose:** Create a new task. Auto-generates `display_id` and validates `parent_id` when provided.
 - **Body:** `{ title, description?, status?, owner?, priority?, github_url?, tags?, estimated_token_effort?, created_by?, parent_id? }`.
-- **Validation:** `status`, `owner`, `priority`, `estimated_token_effort` must match the enums enforced in `routes/tasks.js`. Defaults: `status='new'`, `owner='matt'`, `priority='medium'`, `estimated_token_effort='unknown'`.
+- **Validation:** `status`, `owner`, `priority`, `estimated_token_effort` must match the enums enforced in `routes/tasks.js`. Status values include `scope-and-design` as the pre-implementation stage. Defaults: `status='new'`, `owner='matt'`, `priority='medium'`, `estimated_token_effort='unknown'`.
 - **Response:** `201 { ok: true, task }`.
 
 ### `PATCH /api/tasks/:id`
