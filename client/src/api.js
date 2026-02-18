@@ -95,3 +95,10 @@ export async function fetchTaskHistory(taskId, limit = 50) {
   if (!data.ok) throw new Error(data.error)
   return data.history || []
 }
+
+export async function fetchTaskDependencies(taskId) {
+  const res = await fetch(`${BASE}/${taskId}/dependencies`, { headers: authHeaders() })
+  const data = await res.json()
+  if (!data.ok) throw new Error(data.error)
+  return data.dependencies || []
+}
