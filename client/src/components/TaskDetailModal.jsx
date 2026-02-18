@@ -2,7 +2,7 @@ import { STATUS_COLORS, STATUS_META, PRIORITY_ICONS, OWNERS } from '../constants
 import TaskForm from './TaskForm'
 import EffortBadge from './EffortBadge'
 import { useState, useEffect } from 'react'
-import { fetchComments, addComment, fetchTaskHistory } from '../api'
+import { fetchComments, addComment, fetchTaskHistory, fetchTaskDependencies, fetchTasks } from '../api'
 
 /**
  * Modal that exposes task metadata, comments, history, and quick status controls.
@@ -15,6 +15,9 @@ export default function TaskDetailModal({ task, onClose, onSave, onDelete }) {
   const [history, setHistory] = useState([])
   const [historyError, setHistoryError] = useState('')
   const [historyExpanded, setHistoryExpanded] = useState(false)
+  const [dependencies, setDependencies] = useState([])
+  const [subtasks, setSubtasks] = useState([])
+  const [dependencyError, setDependencyError] = useState('')
   const [commentAuthor, setCommentAuthor] = useState(OWNERS[0])
   const [commentBody, setCommentBody] = useState('')
   const [commentSubmitting, setCommentSubmitting] = useState(false)
@@ -23,10 +26,18 @@ export default function TaskDetailModal({ task, onClose, onSave, onDelete }) {
     if (!task) return
     fetchComments(task.id).then(setComments).catch(() => {})
     setHistoryError('')
+    setDependencyError('')
     setHistoryExpanded(false)
     fetchTaskHistory(task.id)
       .then(setHistory)
       .catch(err => setHistoryError(err.message || 'Failed to load history'))
+
+    Promise.all([fetchTaskDependencies(task.id), fetchTasks()])
+      .then(([deps, allTasks]) => {
+        setDependencies(deps)
+        setSubtasks((allTasks || []).filter(t => Number(t.parent_id) === Number(task.id)))
+      })
+      .catch(err => setDependencyError(err.message || 'Failed to load dependencies/subtasks'))
   }, [task?.id])
 
   if (!task) return null
@@ -157,6 +168,55 @@ export default function TaskDetailModal({ task, onClose, onSave, onDelete }) {
                         {meta.label}
                       </button>
                     ))}
+                  </div>
+                </div>
+
+                {/* Dependencies & Sub-tasks */}
+                <div className="mb-4 form-section">
+                  <div className="modal-section-label">Dependencies & Sub-tasks</div>
+
+                  {dependencyError && (
+                    <p className="text-danger small mb-2">{dependencyError}</p>
+                  )}
+
+                  <div className="mb-3">
+                    <div className="small fw-semibold text-muted mb-1">Blocked by</div>
+                    {dependencies.length === 0 ? (
+                      <p className="text-muted small fst-italic mb-0">No blocking dependencies.</p>
+                    ) : (
+                      <div className="d-flex flex-column gap-2">
+                        {dependencies.map(dep => (
+                          <div key={dep.id} className="comment-card py-2">
+                            <div className="d-flex justify-content-between align-items-center">
+                              <span className="small fw-semibold">{dep.display_id || `#${dep.id}`} — {dep.title}</span>
+                              <span className={`badge bg-${STATUS_COLORS[dep.status] || 'secondary'}`}>
+                                {STATUS_META[dep.status]?.label || dep.status}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <div className="small fw-semibold text-muted mb-1">Sub-tasks</div>
+                    {subtasks.length === 0 ? (
+                      <p className="text-muted small fst-italic mb-0">No sub-tasks linked to this task.</p>
+                    ) : (
+                      <div className="d-flex flex-column gap-2">
+                        {subtasks.map(st => (
+                          <div key={st.id} className="comment-card py-2">
+                            <div className="d-flex justify-content-between align-items-center">
+                              <span className="small fw-semibold">{st.display_id || `#${st.id}`} — {st.title}</span>
+                              <span className={`badge bg-${STATUS_COLORS[st.status] || 'secondary'}`}>
+                                {STATUS_META[st.status]?.label || st.status}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
 
