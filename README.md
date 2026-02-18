@@ -118,10 +118,18 @@ If the variable is **not set**, a random 64-character hex key is generated at st
 
 | Field | Values |
 |-------|--------|
-| status | backlog · in-progress · review · done |
+| status | new · backlog · scope-and-design · in-progress · on-hold · for-approval · review · done |
 | owner | norman · ada · mason · atlas · bard · matt · team |
 | priority | high · medium · low |
 | estimated_token_effort | small (<2,000 tokens) · medium (2,000–8,000) · large (8,000+) — **required** at creation |
+
+### Workflow rule: Scope & Design gate
+
+Default flow for non-trivial work is now:
+
+`backlog` → `scope-and-design` → `in-progress`
+
+Before a task moves from `scope-and-design` to `in-progress`, add a task comment with the design/spec summary and owner rationale (who will implement and why).
 
 ### Token Effort Guidance
 

@@ -109,8 +109,12 @@ export default function TaskModal({ task, onSave, onDelete, onClose }) {
                 <div className="col-4">
                   <label className="form-label fw-semibold">Status</label>
                   <select className="form-select" value={form.status} onChange={set('status')}>
+                    <option value="new">New</option>
                     <option value="backlog">Backlog</option>
+                    <option value="scope-and-design">Scope &amp; Design</option>
                     <option value="in-progress">In Progress</option>
+                    <option value="on-hold">On Hold</option>
+                    <option value="for-approval">For Approval</option>
                     <option value="review">Review</option>
                     <option value="done">Done</option>
                   </select>
