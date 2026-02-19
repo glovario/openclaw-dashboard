@@ -14,9 +14,9 @@ import {
 
 /**
  * Modal that exposes task metadata, comments, history, and quick status controls.
- * @param {{task:Object, onClose:function, onSave:function, onDelete:function}} props
+ * @param {{task:Object, onClose:function, onSave:function, onDelete:function, onDependencyChange:function}} props
  */
-export default function TaskDetailModal({ task, onClose, onSave, onDelete }) {
+export default function TaskDetailModal({ task, onClose, onSave, onDelete, onDependencyChange }) {
   const [editing, setEditing] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [comments, setComments] = useState([])
@@ -117,6 +117,8 @@ export default function TaskDetailModal({ task, onClose, onSave, onDelete }) {
       await addTaskDependency(task.id, Number(newDependencyId))
       setNewDependencyId('')
       await refreshLinks()
+      onDependencyChange?.()
+      onDependencyChange?.()
     } catch (err) {
       setDependencyError(err.message || 'Failed to add dependency')
     } finally {

@@ -9,20 +9,26 @@ const db = require('../db');
  */
 router.get('/', async (req, res) => {
   const { status, owner, priority, search, estimated_token_effort } = req.query;
-  let sql = 'SELECT * FROM tasks WHERE 1=1';
+  let sql = `SELECT t.*,
+    COALESCE(SUM(CASE WHEN b.status IS NULL OR b.status != 'done' THEN 1 ELSE 0 END), 0) AS unresolved_blocker_count,
+    CASE WHEN COALESCE(SUM(CASE WHEN b.status IS NULL OR b.status != 'done' THEN 1 ELSE 0 END), 0) > 0 THEN 1 ELSE 0 END AS is_blocked
+    FROM tasks t
+    LEFT JOIN task_dependencies d ON d.task_id = t.id
+    LEFT JOIN tasks b ON b.id = d.blocked_by
+    WHERE 1=1`;
   const params = [];
 
-  if (status)   { sql += ' AND status = ?';   params.push(status); }
-  if (owner)    { sql += ' AND owner = ?';    params.push(owner); }
-  if (priority) { sql += ' AND priority = ?'; params.push(priority); }
-  if (estimated_token_effort) { sql += ' AND estimated_token_effort = ?'; params.push(estimated_token_effort); }
+  if (status)   { sql += ' AND t.status = ?';   params.push(status); }
+  if (owner)    { sql += ' AND t.owner = ?';    params.push(owner); }
+  if (priority) { sql += ' AND t.priority = ?'; params.push(priority); }
+  if (estimated_token_effort) { sql += ' AND t.estimated_token_effort = ?'; params.push(estimated_token_effort); }
   if (search)   {
-    sql += ' AND (title LIKE ? OR description LIKE ? OR tags LIKE ?)';
+    sql += ' AND (t.title LIKE ? OR t.description LIKE ? OR t.tags LIKE ?)';
     const s = `%${search}%`;
     params.push(s, s, s);
   }
 
-  sql += ' ORDER BY CASE priority WHEN \'high\' THEN 0 WHEN \'medium\' THEN 1 ELSE 2 END, updated_at DESC';
+  sql += " GROUP BY t.id ORDER BY CASE t.priority WHEN 'high' THEN 0 WHEN 'medium' THEN 1 ELSE 2 END, t.updated_at DESC";
 
   try {
     await db.getDb();

@@ -238,6 +238,7 @@ export default function App() {
           onClose={() => setSelected(null)}
           onSave={handleTaskSave}
           onDelete={handleTaskDelete}
+          onDependencyChange={() => loadTasks()}
         />
       )}
 

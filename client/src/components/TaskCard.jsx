@@ -62,6 +62,14 @@ export default function TaskCard({ task, onClick }) {
                 {PRIORITY_ICONS[task.priority]}
               </span>
               <EffortBadge effort={task.estimated_token_effort} compact />
+              {Number(task.unresolved_blocker_count || 0) > 0 && (
+                <span
+                  className="badge bg-danger-subtle text-danger-emphasis border border-danger-subtle"
+                  title={`Blocked by ${task.unresolved_blocker_count} unresolved dependenc${Number(task.unresolved_blocker_count) === 1 ? 'y' : 'ies'}`}
+                >
+                  ⛔ {task.unresolved_blocker_count}
+                </span>
+              )}
               {tags.map(tag => (
                 <span key={tag} className="badge rounded-pill bg-light text-dark border tag-pill">
                   {tag}
