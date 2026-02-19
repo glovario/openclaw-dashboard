@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { fetchTasks, createTask, updateTask, deleteTask } from './api'
 import { STATUSES, STATUS_META } from './constants'
+import { sortTasks, SORT_FIELDS } from './utils/sortTasks'
 import FilterBar from './components/FilterBar'
 import TaskCard from './components/TaskCard'
 import KanbanBoard from './components/KanbanBoard'
@@ -10,6 +11,7 @@ import SystemHealth from './components/SystemHealth'
 
 const DEFAULT_FILTERS = { excludeDone: true }
 const PAGE_SIZE = 12
+const SORT_STORAGE_KEY = 'huddle:task-sort-v1'
 
 export default function App() {
   const [allTasks, setAllTasks] = useState([])
@@ -20,6 +22,8 @@ export default function App() {
   const [showAdd, setShowAdd] = useState(false)
   const [viewMode, setViewMode] = useState('list') // 'list' | 'kanban'
   const [page, setPage] = useState(1)
+  const [sortField, setSortField] = useState('priority')
+  const [sortDirection, setSortDirection] = useState('asc')
 
   // Always fetch ALL tasks (high limit); filtering is done client-side so counts stay accurate
   // OC-037: we pass limit/offset to support pagination
@@ -37,6 +41,22 @@ export default function App() {
   }, [])
 
   useEffect(() => { loadTasks() }, [loadTasks])
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(SORT_STORAGE_KEY)
+      if (!raw) return
+      const parsed = JSON.parse(raw)
+      if (SORT_FIELDS.includes(parsed.field)) setSortField(parsed.field)
+      if (parsed.direction === 'asc' || parsed.direction === 'desc') setSortDirection(parsed.direction)
+    } catch {
+      // ignore invalid localStorage payloads
+    }
+  }, [])
+
+  useEffect(() => {
+    localStorage.setItem(SORT_STORAGE_KEY, JSON.stringify({ field: sortField, direction: sortDirection }))
+  }, [sortField, sortDirection])
 
   // Apply client-side filters to produce the visible task list
   const displayTasks = allTasks.filter(task => {
@@ -72,6 +92,11 @@ export default function App() {
 
   const handleFiltersChange = (f) => { setFilters(f); setPage(1) }
   const handleClearFilters = () => { setFilters(DEFAULT_FILTERS); setPage(1) }
+  const handleSortChange = ({ field, direction }) => {
+    setSortField(field)
+    setSortDirection(direction)
+    setPage(1)
+  }
 
   const handleAddSave = async (form) => {
     await createTask(form)
@@ -96,10 +121,12 @@ export default function App() {
     STATUSES.map(s => [s, allTasks.filter(t => t.status === s).length])
   )
 
+  const sortedTasks = sortTasks(displayTasks, sortField, sortDirection)
+
   // OC-009: client-side pagination of filtered results
-  const totalPages = Math.max(1, Math.ceil(displayTasks.length / PAGE_SIZE))
+  const totalPages = Math.max(1, Math.ceil(sortedTasks.length / PAGE_SIZE))
   const safePage = Math.min(page, totalPages)
-  const pagedTasks = displayTasks.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE)
+  const pagedTasks = sortedTasks.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE)
 
   const handleSummaryCardClick = (key) => {
     setFilters(f => {
@@ -182,6 +209,9 @@ export default function App() {
           filters={filters}
           onChange={handleFiltersChange}
           onClear={handleClearFilters}
+          sortField={sortField}
+          sortDirection={sortDirection}
+          onSortChange={handleSortChange}
         />
 
         {error && (
@@ -203,7 +233,7 @@ export default function App() {
             <button className="btn btn-outline-primary mt-2" onClick={() => setShowAdd(true)}>Add the first task</button>
           </div>
         ) : viewMode === 'kanban' ? (
-          <KanbanBoard tasks={displayTasks} onTaskClick={setSelected} />
+          <KanbanBoard tasks={sortedTasks} onTaskClick={setSelected} />
         ) : (
           <>
             <div className="row g-0">

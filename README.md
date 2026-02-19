@@ -56,6 +56,9 @@ This runs `vite build` inside `client/` and writes the output to `public/`, wher
 - **Task list** with status badges, owner colour tags, and priority indicators (red/yellow/green border)
 - **Summary stats** row — click a status card to filter by it
 - **Filters** by status, owner, priority, token effort, and free-text search
+- **Client-side sorting** by Priority (default), Updated date, Created date, Status, Owner, or Effort, with asc/desc toggle
+- **Sort preference persistence** in localStorage (`huddle:task-sort-v1`) with safe fallback to defaults
+- **Blocked badges** on task cards (list + kanban) showing unresolved blocker count
 - **Add / edit tasks** via a modal form
 - **Task detail modal** with quick status buttons and GitHub URL link
 - **Delete** tasks from the detail modal
