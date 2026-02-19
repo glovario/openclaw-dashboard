@@ -24,3 +24,16 @@ Validate token reporting correctness and edge-case behavior for `/api/reports/to
 - API response snapshots for each matrix case
 - SQL cross-check query outputs
 - Pass/fail summary and defects (if any)
+
+## Automation helper
+Run:
+
+```bash
+API_KEY=<dashboard_api_key> node scripts/validate-token-reports.js
+```
+
+This validates:
+- response contract keys
+- linked/unlinked reconciliation
+- sorted order guarantees
+- include_unlinked=false behavior
