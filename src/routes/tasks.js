@@ -10,8 +10,8 @@ const db = require('../db');
 router.get('/', async (req, res) => {
   const { status, owner, priority, search, estimated_token_effort } = req.query;
   let sql = `SELECT t.*,
-    COALESCE(SUM(CASE WHEN b.status IS NULL OR b.status != 'done' THEN 1 ELSE 0 END), 0) AS unresolved_blocker_count,
-    CASE WHEN COALESCE(SUM(CASE WHEN b.status IS NULL OR b.status != 'done' THEN 1 ELSE 0 END), 0) > 0 THEN 1 ELSE 0 END AS is_blocked
+    COALESCE(SUM(CASE WHEN d.blocked_by IS NOT NULL AND (b.status IS NULL OR b.status != 'done') THEN 1 ELSE 0 END), 0) AS unresolved_blocker_count,
+    CASE WHEN COALESCE(SUM(CASE WHEN d.blocked_by IS NOT NULL AND (b.status IS NULL OR b.status != 'done') THEN 1 ELSE 0 END), 0) > 0 THEN 1 ELSE 0 END AS is_blocked
     FROM tasks t
     LEFT JOIN task_dependencies d ON d.task_id = t.id
     LEFT JOIN tasks b ON b.id = d.blocked_by
