@@ -64,7 +64,9 @@ export default function TaskDetailModal({ task, onClose, onSave, onDelete, onDep
 
   if (!task) return null
 
-  const tags = task.tags ? task.tags.split(',').map(t => t.trim()).filter(Boolean) : []
+  const tags = typeof task.tags === 'string'
+    ? task.tags.split(',').map(t => t.trim()).filter(Boolean)
+    : []
   const dependencyIds = new Set(dependencies.map(d => Number(d.id)))
   const dependencyCandidates = allTasks
     .filter(t => Number(t.id) !== Number(task.id) && !dependencyIds.has(Number(t.id)))

@@ -6,7 +6,9 @@ import EffortBadge from './EffortBadge'
  * @param {{task:Object, onClick:function}} props
  */
 export default function TaskCard({ task, onClick }) {
-  const tags = task.tags ? task.tags.split(',').map(t => t.trim()).filter(Boolean) : []
+  const tags = typeof task.tags === 'string'
+    ? task.tags.split(',').map(t => t.trim()).filter(Boolean)
+    : []
   const unresolvedBlockerCount = Number(task.unresolved_blocker_count || 0)
   const isBlocked = unresolvedBlockerCount > 0 || Number(task.is_blocked) === 1 || task.is_blocked === true
 
