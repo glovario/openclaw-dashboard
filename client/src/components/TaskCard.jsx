@@ -7,6 +7,8 @@ import EffortBadge from './EffortBadge'
  */
 export default function TaskCard({ task, onClick }) {
   const tags = task.tags ? task.tags.split(',').map(t => t.trim()).filter(Boolean) : []
+  const unresolvedBlockerCount = Number(task.unresolved_blocker_count || 0)
+  const isBlocked = unresolvedBlockerCount > 0 || Number(task.is_blocked) === 1 || task.is_blocked === true
 
   return (
     <div
@@ -62,12 +64,14 @@ export default function TaskCard({ task, onClick }) {
                 {PRIORITY_ICONS[task.priority]}
               </span>
               <EffortBadge effort={task.estimated_token_effort} compact />
-              {Number(task.unresolved_blocker_count || 0) > 0 && (
+              {isBlocked && (
                 <span
                   className="badge bg-danger-subtle text-danger-emphasis border border-danger-subtle"
-                  title={`Blocked by ${task.unresolved_blocker_count} unresolved dependenc${Number(task.unresolved_blocker_count) === 1 ? 'y' : 'ies'}`}
+                  title={unresolvedBlockerCount > 0
+                    ? `Blocked by ${unresolvedBlockerCount} unresolved dependenc${unresolvedBlockerCount === 1 ? 'y' : 'ies'}`
+                    : 'Blocked by unresolved dependency'}
                 >
-                  ⛔ {task.unresolved_blocker_count}
+                  ⛔ {unresolvedBlockerCount > 0 ? unresolvedBlockerCount : 'Blocked'}
                 </span>
               )}
               {tags.map(tag => (
