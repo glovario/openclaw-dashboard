@@ -111,6 +111,7 @@ app.use('/api', (req, res, next) => {
 app.use('/api/tasks', require('./routes/tasks'));
 app.use('/api/tasks/:id/comments', require('./routes/comments'));
 app.use('/api/system', require('./routes/system'));
+app.use('/api/reports', require('./routes/reports'));
 
 // Health check
 app.get('/api/health', (req, res) => {

@@ -123,3 +123,16 @@ export async function removeTaskDependency(taskId, blockerId) {
   if (!data.ok) throw new Error(data.error)
   return true
 }
+
+export async function fetchTokenReport(filters = {}) {
+  const params = new URLSearchParams()
+  if (filters.window) params.set('window', filters.window)
+  if (filters.start) params.set('start', filters.start)
+  if (filters.end) params.set('end', filters.end)
+  if (typeof filters.include_unlinked !== 'undefined') {
+    params.set('include_unlinked', String(filters.include_unlinked))
+  }
+  const q = params.toString()
+  const data = await apiFetch(`/api/reports/tokens${q ? `?${q}` : ''}`)
+  return data
+}
