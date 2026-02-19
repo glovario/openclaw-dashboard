@@ -7,6 +7,7 @@ import KanbanBoard from './components/KanbanBoard'
 import TaskDetailModal from './components/TaskDetailModal'
 import AddTaskModal from './components/AddTaskModal'
 import SystemHealth from './components/SystemHealth'
+import ReportsTab from './components/ReportsTab'
 
 const DEFAULT_FILTERS = { excludeDone: true }
 const PAGE_SIZE = 12
@@ -35,6 +36,7 @@ export default function App() {
   const [selected, setSelected] = useState(null)
   const [showAdd, setShowAdd] = useState(false)
   const [viewMode, setViewMode] = useState('list') // 'list' | 'kanban'
+  const [activeTab, setActiveTab] = useState('tasks') // 'tasks' | 'reports'
   const [page, setPage] = useState(1)
   const [sort, setSort] = useState(readSavedSort)
 
@@ -188,18 +190,32 @@ export default function App() {
           </span>
           <div className="d-flex gap-2 align-items-center">
             <SystemHealth />
-            <div className="btn-group btn-group-sm" role="group" aria-label="View mode">
+            <div className="btn-group btn-group-sm" role="group" aria-label="Main tabs">
               <button
-                className={`btn ${viewMode === 'list' ? 'btn-light' : 'btn-outline-light'}`}
-                onClick={() => setViewMode('list')}
-                title="List view"
-              >☰ List</button>
+                className={`btn ${activeTab === 'tasks' ? 'btn-light' : 'btn-outline-light'}`}
+                onClick={() => setActiveTab('tasks')}
+                title="Tasks"
+              >📋 Tasks</button>
               <button
-                className={`btn ${viewMode === 'kanban' ? 'btn-light' : 'btn-outline-light'}`}
-                onClick={() => setViewMode('kanban')}
-                title="Kanban view"
-              >⬛ Kanban</button>
+                className={`btn ${activeTab === 'reports' ? 'btn-light' : 'btn-outline-light'}`}
+                onClick={() => setActiveTab('reports')}
+                title="Reports"
+              >📊 Reports</button>
             </div>
+            {activeTab === 'tasks' && (
+              <div className="btn-group btn-group-sm" role="group" aria-label="View mode">
+                <button
+                  className={`btn ${viewMode === 'list' ? 'btn-light' : 'btn-outline-light'}`}
+                  onClick={() => setViewMode('list')}
+                  title="List view"
+                >☰ List</button>
+                <button
+                  className={`btn ${viewMode === 'kanban' ? 'btn-light' : 'btn-outline-light'}`}
+                  onClick={() => setViewMode('kanban')}
+                  title="Kanban view"
+                >⬛ Kanban</button>
+              </div>
+            )}
             <button className="btn btn-primary btn-sm" onClick={() => setShowAdd(true)}>
               + New task
             </button>
@@ -208,6 +224,8 @@ export default function App() {
       </nav>
 
       <div className="container-xl pb-5">
+        {activeTab === 'tasks' ? (
+          <>
         {/* OC-041: Status Summary Cards — all workflow states, dynamic from STATUS_META */}
         <div className="row g-2 mb-4">
           {STATUSES.map(key => {
@@ -299,6 +317,10 @@ export default function App() {
               </div>
             )}
           </>
+        )}
+          </>
+        ) : (
+          <ReportsTab />
         )}
       </div>
 
