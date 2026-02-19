@@ -5,6 +5,14 @@ const db = require('../db');
 const VALID_OWNERS = ['norman','ada','mason','atlas','bard','quinn','juno','malik','priya','elias','rowan','asha','soren','elena','nia','theo','matt','team'];
 const ENFORCED_BINDING_OWNERS = new Set(VALID_OWNERS.filter(o => !['matt', 'team'].includes(o)));
 const ASSIGNEE_PRESENCE_TTL_MINUTES = parseInt(process.env.ASSIGNEE_PRESENCE_TTL_MINUTES || '30', 10);
+const TRACEABILITY_STATUSES = new Set(['review', 'for-approval', 'done']);
+
+function hasTraceabilityUrl(v) {
+  if (v === null || v === undefined) return false;
+  const s = String(v).trim();
+  if (!s) return false;
+  return /^https?:\/\//i.test(s) || /^N\/?A$/i.test(s);
+}
 
 /**
  * GET /api/tasks
@@ -172,6 +180,9 @@ router.post('/', async (req, res) => {
   if (!validOwner.includes(owner))                 return res.status(400).json({ ok: false, error: 'Invalid owner' });
   if (!validPriority.includes(priority))           return res.status(400).json({ ok: false, error: 'Invalid priority' });
   if (!validEffort.includes(estimated_token_effort)) return res.status(400).json({ ok: false, error: 'Invalid estimated_token_effort' });
+  if (TRACEABILITY_STATUSES.has(status) && !hasTraceabilityUrl(github_url)) {
+    return res.status(400).json({ ok: false, error: 'github_url is required (or N/A) when creating tasks in review/for-approval/done.' });
+  }
 
   try {
     await db.getDb();
@@ -307,6 +318,14 @@ router.patch('/:id', async (req, res) => {
     // OC-141: enforce live assignee binding before entering in-progress
     const targetStatus = normalizedBody.status !== undefined ? normalizedBody.status : existing.status;
     const targetOwner = normalizedBody.owner !== undefined ? normalizedBody.owner : existing.owner;
+    const targetGithubUrl = normalizedBody.github_url !== undefined ? normalizedBody.github_url : existing.github_url;
+    if (TRACEABILITY_STATUSES.has(targetStatus) && !hasTraceabilityUrl(targetGithubUrl)) {
+      return res.status(409).json({
+        ok: false,
+        error: `Cannot move to ${targetStatus}: github_url is required (or N/A) for traceability.`
+      });
+    }
+
     if (targetStatus === 'in-progress' && ENFORCED_BINDING_OWNERS.has(targetOwner)) {
       const binding = db.get(`
         SELECT owner, last_seen,
