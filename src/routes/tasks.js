@@ -84,6 +84,7 @@ router.post('/', async (req, res) => {
           priority = 'medium', github_url = '', tags = '',
           estimated_token_effort = 'unknown', created_by = 'matt',
           parent_id = null } = req.body;
+  const normalizedTags = typeof tags === 'string' ? tags : '';
 
   if (!title) return res.status(400).json({ ok: false, error: 'title is required' });
 
@@ -117,7 +118,7 @@ router.post('/', async (req, res) => {
     const id = db.insert(
       `INSERT INTO tasks (title, description, status, owner, priority, github_url, tags, estimated_token_effort, display_id, created_by, parent_id)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [title, description, status, owner, priority, github_url, tags, estimated_token_effort, displayId, created_by, parent_id]
+      [title, description, status, owner, priority, github_url, normalizedTags, estimated_token_effort, displayId, created_by, parent_id]
     );
     const task = db.get('SELECT * FROM tasks WHERE id = ?', [id]);
     res.status(201).json({ ok: true, task });
@@ -214,8 +215,13 @@ router.patch('/:id', async (req, res) => {
   if (req.body.estimated_token_effort !== undefined && !validEffort.includes(req.body.estimated_token_effort))
     return res.status(400).json({ ok: false, error: `Invalid estimated_token_effort. Allowed: ${validEffort.join(', ')}` });
 
+  const normalizedBody = { ...req.body };
+  if (normalizedBody.tags !== undefined && typeof normalizedBody.tags !== 'string') {
+    normalizedBody.tags = '';
+  }
+
   const setClause = updates.map(k => `${k} = ?`).join(', ');
-  const values = [...updates.map(k => req.body[k]), req.params.id];
+  const values = [...updates.map(k => normalizedBody[k]), req.params.id];
 
   try {
     await db.getDb();
@@ -227,7 +233,7 @@ router.patch('/:id', async (req, res) => {
     const author = req.headers['x-author'] || 'system';
     for (const field of updates) {
       const oldVal = existing[field] !== undefined ? String(existing[field]) : null;
-      const newVal = req.body[field] !== undefined ? String(req.body[field]) : null;
+      const newVal = normalizedBody[field] !== undefined ? String(normalizedBody[field]) : null;
       if (oldVal !== newVal) {
         db.run(
           `INSERT INTO task_history (task_id, field_name, old_value, new_value, author) VALUES (?, ?, ?, ?, ?)`,
