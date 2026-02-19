@@ -10,6 +10,22 @@ import SystemHealth from './components/SystemHealth'
 
 const DEFAULT_FILTERS = { excludeDone: true }
 const PAGE_SIZE = 12
+const SORT_KEY = 'dashboard_sort'
+const DEFAULT_SORT = { by: 'priority', dir: 'asc' }
+
+function readSavedSort() {
+  try {
+    const raw = window.localStorage.getItem(SORT_KEY)
+    if (!raw) return DEFAULT_SORT
+    const parsed = JSON.parse(raw)
+    const allowedBy = ['priority', 'updated_at', 'created_at', 'status', 'owner', 'estimated_token_effort']
+    const allowedDir = ['asc', 'desc']
+    if (!allowedBy.includes(parsed.by) || !allowedDir.includes(parsed.dir)) return DEFAULT_SORT
+    return parsed
+  } catch {
+    return DEFAULT_SORT
+  }
+}
 
 export default function App() {
   const [allTasks, setAllTasks] = useState([])
@@ -20,6 +36,7 @@ export default function App() {
   const [showAdd, setShowAdd] = useState(false)
   const [viewMode, setViewMode] = useState('list') // 'list' | 'kanban'
   const [page, setPage] = useState(1)
+  const [sort, setSort] = useState(readSavedSort)
 
   // Always fetch ALL tasks (high limit); filtering is done client-side so counts stay accurate
   // OC-037: we pass limit/offset to support pagination
@@ -37,6 +54,10 @@ export default function App() {
   }, [])
 
   useEffect(() => { loadTasks() }, [loadTasks])
+
+  useEffect(() => {
+    window.localStorage.setItem(SORT_KEY, JSON.stringify(sort))
+  }, [sort])
 
   // Apply client-side filters to produce the visible task list
   const displayTasks = allTasks.filter(task => {
@@ -70,6 +91,51 @@ export default function App() {
     return true
   })
 
+  const comparePriority = (a, b) => {
+    const rank = { high: 0, medium: 1, low: 2 }
+    return (rank[a] ?? 99) - (rank[b] ?? 99)
+  }
+
+  const compareEffort = (a, b) => {
+    const rank = { unknown: 0, small: 1, medium: 2, large: 3 }
+    return (rank[a] ?? 99) - (rank[b] ?? 99)
+  }
+
+  const sortedTasks = [...displayTasks].sort((a, b) => {
+    let cmp = 0
+    switch (sort.by) {
+      case 'priority':
+        cmp = comparePriority(a.priority, b.priority)
+        break
+      case 'updated_at':
+        cmp = new Date(a.updated_at || 0) - new Date(b.updated_at || 0)
+        break
+      case 'created_at':
+        cmp = new Date(a.created_at || 0) - new Date(b.created_at || 0)
+        break
+      case 'status':
+        cmp = String(a.status || '').localeCompare(String(b.status || ''))
+        break
+      case 'owner':
+        cmp = String(a.owner || '').localeCompare(String(b.owner || ''))
+        break
+      case 'estimated_token_effort':
+        cmp = compareEffort(a.estimated_token_effort, b.estimated_token_effort)
+        break
+      default:
+        cmp = 0
+    }
+
+    if (cmp === 0) {
+      cmp = String(a.display_id || '').localeCompare(String(b.display_id || ''))
+    }
+
+    return sort.dir === 'asc' ? cmp : -cmp
+  })
+
+  const handleSortByChange = (by) => { setSort(s => ({ ...s, by })); setPage(1) }
+  const handleSortDirToggle = () => { setSort(s => ({ ...s, dir: s.dir === 'asc' ? 'desc' : 'asc' })); setPage(1) }
+
   const handleFiltersChange = (f) => { setFilters(f); setPage(1) }
   const handleClearFilters = () => { setFilters(DEFAULT_FILTERS); setPage(1) }
 
@@ -97,9 +163,9 @@ export default function App() {
   )
 
   // OC-009: client-side pagination of filtered results
-  const totalPages = Math.max(1, Math.ceil(displayTasks.length / PAGE_SIZE))
+  const totalPages = Math.max(1, Math.ceil(sortedTasks.length / PAGE_SIZE))
   const safePage = Math.min(page, totalPages)
-  const pagedTasks = displayTasks.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE)
+  const pagedTasks = sortedTasks.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE)
 
   const handleSummaryCardClick = (key) => {
     setFilters(f => {
@@ -182,6 +248,10 @@ export default function App() {
           filters={filters}
           onChange={handleFiltersChange}
           onClear={handleClearFilters}
+          sortBy={sort.by}
+          sortDir={sort.dir}
+          onSortByChange={handleSortByChange}
+          onSortDirToggle={handleSortDirToggle}
         />
 
         {error && (

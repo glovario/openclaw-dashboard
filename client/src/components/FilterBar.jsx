@@ -1,10 +1,19 @@
 import { STATUSES, OWNERS, PRIORITIES, EFFORTS } from '../constants'
 
+const SORT_OPTIONS = [
+  { value: 'priority', label: 'Priority' },
+  { value: 'updated_at', label: 'Updated date' },
+  { value: 'created_at', label: 'Created date' },
+  { value: 'status', label: 'Status' },
+  { value: 'owner', label: 'Owner' },
+  { value: 'estimated_token_effort', label: 'Effort' },
+]
+
 /**
  * Filter row for the kanban/task list. Holds status, owner, priority, effort, and search inputs.
- * @param {{filters:Object, onChange:function, onClear:function}} props
+ * @param {{filters:Object, onChange:function, onClear:function, sortBy:string, sortDir:string, onSortByChange:function, onSortDirToggle:function}} props
  */
-export default function FilterBar({ filters, onChange, onClear }) {
+export default function FilterBar({ filters, onChange, onClear, sortBy, sortDir, onSortByChange, onSortDirToggle }) {
   const set = (key, val) => {
     const updated = { ...filters, [key]: val }
     // If user explicitly selects a status (including 'done'), disable excludeDone
@@ -48,6 +57,20 @@ export default function FilterBar({ filters, onChange, onClear }) {
           <option value="">All effort</option>
           {EFFORTS.map(e => <option key={e} value={e}>{e === 'unknown' ? '? Unknown' : `⚡ ${e}`}</option>)}
         </select>
+      </div>
+      <div className="col-6 col-sm-3 col-md-2">
+        <select className="form-select" value={sortBy} onChange={e => onSortByChange(e.target.value)}>
+          {SORT_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+        </select>
+      </div>
+      <div className="col-6 col-sm-3 col-md-1">
+        <button
+          className="btn btn-outline-secondary w-100"
+          onClick={onSortDirToggle}
+          title={`Sort ${sortDir === 'asc' ? 'ascending' : 'descending'}`}
+        >
+          {sortDir === 'asc' ? '↑' : '↓'}
+        </button>
       </div>
       <div className="col-6 col-sm-3 col-md-auto">
         <button className="btn btn-outline-secondary w-100" onClick={onClear}>
