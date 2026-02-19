@@ -40,6 +40,17 @@ Validate `/api/reports/tokens` correctness across totals, grouping, filters, and
   - trend
   - top agents/tasks
 
+## Latest execution snapshot (2026-02-19 23:22 Europe/London)
+
+- Command:
+  - `DASHBOARD_API_KEY=*** npm run test:reports`
+- Result:
+  - **FAIL** — `/api/reports/tokens` returned SPA HTML instead of JSON on `http://localhost:3420`
+- Blocker owner:
+  - **Atlas** (runtime/service parity)
+- Next unblock step:
+  - Verify running dashboard service is using backend build that mounts `/api/reports`, then re-run `npm run test:reports`.
+
 ## Exit criteria
 - All matrix rows pass
 - At least one fixture set containing both linked + unlinked events validated
