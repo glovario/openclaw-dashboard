@@ -71,6 +71,17 @@ async function getDb() {
     )
   `);
 
+  // OC-141: live assignee presence/binding registry
+  _db.run(`
+    CREATE TABLE IF NOT EXISTS agent_presence (
+      owner       TEXT PRIMARY KEY,
+      session_key TEXT,
+      state       TEXT NOT NULL DEFAULT 'online',
+      last_seen   TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at  TEXT NOT NULL DEFAULT (datetime('now'))
+    )
+  `);
+
   // Migration: add columns to existing DBs that predate these fields
   try {
     _db.run(`ALTER TABLE tasks ADD COLUMN estimated_token_effort TEXT NOT NULL DEFAULT 'unknown'`);

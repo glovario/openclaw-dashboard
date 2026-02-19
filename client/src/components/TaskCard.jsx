@@ -6,7 +6,11 @@ import EffortBadge from './EffortBadge'
  * @param {{task:Object, onClick:function}} props
  */
 export default function TaskCard({ task, onClick }) {
-  const tags = task.tags ? task.tags.split(',').map(t => t.trim()).filter(Boolean) : []
+  const tags = typeof task.tags === 'string'
+    ? task.tags.split(',').map(t => t.trim()).filter(Boolean)
+    : []
+  const unresolvedBlockerCount = Number(task.unresolved_blocker_count || 0)
+  const isBlocked = unresolvedBlockerCount > 0 || Number(task.is_blocked) === 1 || task.is_blocked === true
 
   return (
     <div
@@ -55,13 +59,26 @@ export default function TaskCard({ task, onClick }) {
               <span className={`badge status-badge bg-${STATUS_COLORS[task.status] || 'secondary'} ${(STATUS_META[task.status] || {}).textClass || ''}`}>
                 {(STATUS_META[task.status] || {}).label || task.status}
               </span>
-              <span className={`badge owner-badge owner-${task.owner}`}>
-                {task.owner}
+              <span
+                className={`badge owner-badge owner-${task.owner}`}
+                title={Number(task.owner_active) === 1 ? 'Owner binding active' : 'Owner binding not active'}
+              >
+                {task.owner} {Number(task.owner_active) === 1 ? '🟢' : '⚪'}
               </span>
               <span className="text-muted small" title={`Priority: ${task.priority}`}>
                 {PRIORITY_ICONS[task.priority]}
               </span>
               <EffortBadge effort={task.estimated_token_effort} compact />
+              {isBlocked && (
+                <span
+                  className="badge bg-danger-subtle text-danger-emphasis border border-danger-subtle"
+                  title={unresolvedBlockerCount > 0
+                    ? `Blocked by ${unresolvedBlockerCount} unresolved dependenc${unresolvedBlockerCount === 1 ? 'y' : 'ies'}`
+                    : 'Blocked by unresolved dependency'}
+                >
+                  ⛔ {unresolvedBlockerCount > 0 ? unresolvedBlockerCount : 'Blocked'}
+                </span>
+              )}
               {tags.map(tag => (
                 <span key={tag} className="badge rounded-pill bg-light text-dark border tag-pill">
                   {tag}

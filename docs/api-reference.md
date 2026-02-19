@@ -33,6 +33,7 @@ This document supplements the `README.md` section about the OpenClaw Dashboard A
 - **Purpose:** Update editable fields (`title`, `description`, `status`, `owner`, `priority`, `github_url`, `tags`, `estimated_token_effort`, `parent_id`, `created_by`).
 - **Body:** Partial object containing only fields to change.
 - **Behavior:** Invalid enums result in `400`. Each actual change inserts a `task_history` row and the handler returns the updated task.
+- **OC-141 enforcement:** moving a task to `in-progress` for named agents now requires an active assignee heartbeat binding; otherwise API returns `409` with a clear binding error.
 
 ### `DELETE /api/tasks/:id`
 - **Purpose:** Deletes the task and cascades history/comments/dependencies.
@@ -55,6 +56,20 @@ This document supplements the `README.md` section about the OpenClaw Dashboard A
 
 ### `DELETE /api/tasks/:id/dependencies/:blockerId`
 - **Purpose:** Removes a specific blocked-by relationship.
+
+
+## Assignee binding endpoints (OC-141)
+
+### `POST /api/tasks/agent-bindings/heartbeat`
+- **Purpose:** Upsert assignee presence heartbeat (`owner`, optional `session_key`, optional `state`).
+- **Use:** keep live binding fresh for `in-progress` gate enforcement.
+
+### `GET /api/tasks/agent-bindings`
+- **Purpose:** List current owner bindings with computed `active` flag.
+- **Response:** `{ ok, bindings, ttl_minutes }`.
+
+### `GET /api/tasks/agent-bindings/escalation-scan?staleMinutes=120`
+- **Purpose:** Return in-progress tasks stale beyond threshold plus owner binding activity data for watchdog/escalation workflows.
 
 
 ## Comments (`/api/tasks/:id/comments`)
