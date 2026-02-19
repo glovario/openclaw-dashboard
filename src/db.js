@@ -71,6 +71,34 @@ async function getDb() {
     )
   `);
 
+  // OC-141: live assignee presence/binding registry
+  _db.run(`
+    CREATE TABLE IF NOT EXISTS agent_presence (
+      owner       TEXT PRIMARY KEY,
+      session_key TEXT,
+      state       TEXT NOT NULL DEFAULT 'online',
+      last_seen   TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at  TEXT NOT NULL DEFAULT (datetime('now'))
+    )
+  `);
+
+  // OC-036: token usage fact table for reporting and cost attribution
+  _db.run(`
+    CREATE TABLE IF NOT EXISTS token_usage_events (
+      id                INTEGER PRIMARY KEY AUTOINCREMENT,
+      ts                TEXT NOT NULL DEFAULT (datetime('now')),
+      source            TEXT NOT NULL DEFAULT 'unknown',
+      task_id           INTEGER REFERENCES tasks(id) ON DELETE SET NULL,
+      agent             TEXT,
+      model             TEXT,
+      prompt_tokens     INTEGER NOT NULL DEFAULT 0,
+      completion_tokens INTEGER NOT NULL DEFAULT 0,
+      total_tokens      INTEGER NOT NULL DEFAULT 0,
+      cost_usd          REAL NOT NULL DEFAULT 0,
+      metadata_json     TEXT
+    )
+  `);
+
   // Migration: add columns to existing DBs that predate these fields
   try {
     _db.run(`ALTER TABLE tasks ADD COLUMN estimated_token_effort TEXT NOT NULL DEFAULT 'unknown'`);
@@ -88,6 +116,16 @@ async function getDb() {
   try {
     _db.run(`ALTER TABLE tasks ADD COLUMN parent_id INTEGER REFERENCES tasks(id) ON DELETE SET NULL`);
   } catch (_) { /* column already exists — safe to ignore */ }
+
+  // OC-036: migration columns for older token_usage_events shapes
+  try {
+    _db.run(`ALTER TABLE token_usage_events ADD COLUMN metadata_json TEXT`);
+  } catch (_) { /* column already exists — safe to ignore */ }
+
+  _db.run(`CREATE INDEX IF NOT EXISTS idx_token_usage_events_ts ON token_usage_events(ts)`);
+  _db.run(`CREATE INDEX IF NOT EXISTS idx_token_usage_events_task_id ON token_usage_events(task_id)`);
+  _db.run(`CREATE INDEX IF NOT EXISTS idx_token_usage_events_agent ON token_usage_events(agent)`);
+  _db.run(`CREATE INDEX IF NOT EXISTS idx_token_usage_events_model ON token_usage_events(model)`);
 
   // Backfill display_id for any tasks that don't have one yet
   const untagged = [];

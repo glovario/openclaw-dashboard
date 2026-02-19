@@ -1,17 +1,32 @@
 import { useState, useEffect, useCallback } from 'react'
 import { fetchTasks, createTask, updateTask, deleteTask } from './api'
 import { STATUSES, STATUS_META } from './constants'
-import { sortTasks, SORT_FIELDS } from './utils/sortTasks'
 import FilterBar from './components/FilterBar'
 import TaskCard from './components/TaskCard'
 import KanbanBoard from './components/KanbanBoard'
 import TaskDetailModal from './components/TaskDetailModal'
 import AddTaskModal from './components/AddTaskModal'
 import SystemHealth from './components/SystemHealth'
+import ReportsTab from './components/ReportsTab'
 
 const DEFAULT_FILTERS = { excludeDone: true }
 const PAGE_SIZE = 12
-const SORT_STORAGE_KEY = 'huddle:task-sort-v1'
+const SORT_KEY = 'dashboard_sort'
+const DEFAULT_SORT = { by: 'priority', dir: 'asc' }
+
+function readSavedSort() {
+  try {
+    const raw = window.localStorage.getItem(SORT_KEY)
+    if (!raw) return DEFAULT_SORT
+    const parsed = JSON.parse(raw)
+    const allowedBy = ['priority', 'updated_at', 'created_at', 'status', 'owner', 'estimated_token_effort']
+    const allowedDir = ['asc', 'desc']
+    if (!allowedBy.includes(parsed.by) || !allowedDir.includes(parsed.dir)) return DEFAULT_SORT
+    return parsed
+  } catch {
+    return DEFAULT_SORT
+  }
+}
 
 export default function App() {
   const [allTasks, setAllTasks] = useState([])
@@ -21,9 +36,9 @@ export default function App() {
   const [selected, setSelected] = useState(null)
   const [showAdd, setShowAdd] = useState(false)
   const [viewMode, setViewMode] = useState('list') // 'list' | 'kanban'
+  const [activeTab, setActiveTab] = useState('tasks') // 'tasks' | 'reports'
   const [page, setPage] = useState(1)
-  const [sortField, setSortField] = useState('priority')
-  const [sortDirection, setSortDirection] = useState('asc')
+  const [sort, setSort] = useState(readSavedSort)
 
   // Always fetch ALL tasks (high limit); filtering is done client-side so counts stay accurate
   // OC-037: we pass limit/offset to support pagination
@@ -43,20 +58,8 @@ export default function App() {
   useEffect(() => { loadTasks() }, [loadTasks])
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(SORT_STORAGE_KEY)
-      if (!raw) return
-      const parsed = JSON.parse(raw)
-      if (SORT_FIELDS.includes(parsed.field)) setSortField(parsed.field)
-      if (parsed.direction === 'asc' || parsed.direction === 'desc') setSortDirection(parsed.direction)
-    } catch {
-      // ignore invalid localStorage payloads
-    }
-  }, [])
-
-  useEffect(() => {
-    localStorage.setItem(SORT_STORAGE_KEY, JSON.stringify({ field: sortField, direction: sortDirection }))
-  }, [sortField, sortDirection])
+    window.localStorage.setItem(SORT_KEY, JSON.stringify(sort))
+  }, [sort])
 
   // Apply client-side filters to produce the visible task list
   const displayTasks = allTasks.filter(task => {
@@ -90,13 +93,53 @@ export default function App() {
     return true
   })
 
+  const comparePriority = (a, b) => {
+    const rank = { high: 0, medium: 1, low: 2 }
+    return (rank[a] ?? 99) - (rank[b] ?? 99)
+  }
+
+  const compareEffort = (a, b) => {
+    const rank = { unknown: 0, small: 1, medium: 2, large: 3 }
+    return (rank[a] ?? 99) - (rank[b] ?? 99)
+  }
+
+  const sortedTasks = [...displayTasks].sort((a, b) => {
+    let cmp = 0
+    switch (sort.by) {
+      case 'priority':
+        cmp = comparePriority(a.priority, b.priority)
+        break
+      case 'updated_at':
+        cmp = new Date(a.updated_at || 0) - new Date(b.updated_at || 0)
+        break
+      case 'created_at':
+        cmp = new Date(a.created_at || 0) - new Date(b.created_at || 0)
+        break
+      case 'status':
+        cmp = String(a.status || '').localeCompare(String(b.status || ''))
+        break
+      case 'owner':
+        cmp = String(a.owner || '').localeCompare(String(b.owner || ''))
+        break
+      case 'estimated_token_effort':
+        cmp = compareEffort(a.estimated_token_effort, b.estimated_token_effort)
+        break
+      default:
+        cmp = 0
+    }
+
+    if (cmp === 0) {
+      cmp = String(a.display_id || '').localeCompare(String(b.display_id || ''))
+    }
+
+    return sort.dir === 'asc' ? cmp : -cmp
+  })
+
+  const handleSortByChange = (by) => { setSort(s => ({ ...s, by })); setPage(1) }
+  const handleSortDirToggle = () => { setSort(s => ({ ...s, dir: s.dir === 'asc' ? 'desc' : 'asc' })); setPage(1) }
+
   const handleFiltersChange = (f) => { setFilters(f); setPage(1) }
   const handleClearFilters = () => { setFilters(DEFAULT_FILTERS); setPage(1) }
-  const handleSortChange = ({ field, direction }) => {
-    setSortField(field)
-    setSortDirection(direction)
-    setPage(1)
-  }
 
   const handleAddSave = async (form) => {
     await createTask(form)
@@ -120,8 +163,6 @@ export default function App() {
   const counts = Object.fromEntries(
     STATUSES.map(s => [s, allTasks.filter(t => t.status === s).length])
   )
-
-  const sortedTasks = sortTasks(displayTasks, sortField, sortDirection)
 
   // OC-009: client-side pagination of filtered results
   const totalPages = Math.max(1, Math.ceil(sortedTasks.length / PAGE_SIZE))
@@ -149,18 +190,32 @@ export default function App() {
           </span>
           <div className="d-flex gap-2 align-items-center">
             <SystemHealth />
-            <div className="btn-group btn-group-sm" role="group" aria-label="View mode">
+            <div className="btn-group btn-group-sm" role="group" aria-label="Main tabs">
               <button
-                className={`btn ${viewMode === 'list' ? 'btn-light' : 'btn-outline-light'}`}
-                onClick={() => setViewMode('list')}
-                title="List view"
-              >☰ List</button>
+                className={`btn ${activeTab === 'tasks' ? 'btn-light' : 'btn-outline-light'}`}
+                onClick={() => setActiveTab('tasks')}
+                title="Tasks"
+              >📋 Tasks</button>
               <button
-                className={`btn ${viewMode === 'kanban' ? 'btn-light' : 'btn-outline-light'}`}
-                onClick={() => setViewMode('kanban')}
-                title="Kanban view"
-              >⬛ Kanban</button>
+                className={`btn ${activeTab === 'reports' ? 'btn-light' : 'btn-outline-light'}`}
+                onClick={() => setActiveTab('reports')}
+                title="Reports"
+              >📊 Reports</button>
             </div>
+            {activeTab === 'tasks' && (
+              <div className="btn-group btn-group-sm" role="group" aria-label="View mode">
+                <button
+                  className={`btn ${viewMode === 'list' ? 'btn-light' : 'btn-outline-light'}`}
+                  onClick={() => setViewMode('list')}
+                  title="List view"
+                >☰ List</button>
+                <button
+                  className={`btn ${viewMode === 'kanban' ? 'btn-light' : 'btn-outline-light'}`}
+                  onClick={() => setViewMode('kanban')}
+                  title="Kanban view"
+                >⬛ Kanban</button>
+              </div>
+            )}
             <button className="btn btn-primary btn-sm" onClick={() => setShowAdd(true)}>
               + New task
             </button>
@@ -169,6 +224,8 @@ export default function App() {
       </nav>
 
       <div className="container-xl pb-5">
+        {activeTab === 'tasks' ? (
+          <>
         {/* OC-041: Status Summary Cards — all workflow states, dynamic from STATUS_META */}
         <div className="row g-2 mb-4">
           {STATUSES.map(key => {
@@ -209,9 +266,10 @@ export default function App() {
           filters={filters}
           onChange={handleFiltersChange}
           onClear={handleClearFilters}
-          sortField={sortField}
-          sortDirection={sortDirection}
-          onSortChange={handleSortChange}
+          sortBy={sort.by}
+          sortDir={sort.dir}
+          onSortByChange={handleSortByChange}
+          onSortDirToggle={handleSortDirToggle}
         />
 
         {error && (
@@ -233,7 +291,7 @@ export default function App() {
             <button className="btn btn-outline-primary mt-2" onClick={() => setShowAdd(true)}>Add the first task</button>
           </div>
         ) : viewMode === 'kanban' ? (
-          <KanbanBoard tasks={sortedTasks} onTaskClick={setSelected} />
+          <KanbanBoard tasks={displayTasks} onTaskClick={setSelected} />
         ) : (
           <>
             <div className="row g-0">
@@ -260,6 +318,10 @@ export default function App() {
             )}
           </>
         )}
+          </>
+        ) : (
+          <ReportsTab />
+        )}
       </div>
 
       {selected && (
@@ -268,6 +330,7 @@ export default function App() {
           onClose={() => setSelected(null)}
           onSave={handleTaskSave}
           onDelete={handleTaskDelete}
+          onDependencyChange={() => loadTasks()}
         />
       )}
 
