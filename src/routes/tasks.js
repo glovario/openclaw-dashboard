@@ -2,6 +2,10 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 
+const VALID_OWNERS = ['norman','ada','mason','atlas','bard','quinn','juno','malik','priya','elias','rowan','asha','soren','elena','nia','theo','matt','team'];
+const ENFORCED_BINDING_OWNERS = new Set(VALID_OWNERS.filter(o => !['matt', 'team'].includes(o)));
+const ASSIGNEE_PRESENCE_TTL_MINUTES = parseInt(process.env.ASSIGNEE_PRESENCE_TTL_MINUTES || '30', 10);
+
 /**
  * GET /api/tasks
  * Returns the list of tasks with optional filters (status, owner, priority, estimated_token_effort, search).
@@ -11,10 +15,17 @@ router.get('/', async (req, res) => {
   const { status, owner, priority, search, estimated_token_effort } = req.query;
   let sql = `SELECT t.*,
     COALESCE(SUM(CASE WHEN d.blocked_by IS NOT NULL AND (b.status IS NULL OR b.status != 'done') THEN 1 ELSE 0 END), 0) AS unresolved_blocker_count,
-    CASE WHEN COALESCE(SUM(CASE WHEN d.blocked_by IS NOT NULL AND (b.status IS NULL OR b.status != 'done') THEN 1 ELSE 0 END), 0) > 0 THEN 1 ELSE 0 END AS is_blocked
+    CASE WHEN COALESCE(SUM(CASE WHEN d.blocked_by IS NOT NULL AND (b.status IS NULL OR b.status != 'done') THEN 1 ELSE 0 END), 0) > 0 THEN 1 ELSE 0 END AS is_blocked,
+    ap.state AS owner_presence_state,
+    ap.last_seen AS owner_last_seen,
+    CASE
+      WHEN ap.last_seen IS NOT NULL AND (julianday('now') - julianday(ap.last_seen)) * 24 * 60 <= ${ASSIGNEE_PRESENCE_TTL_MINUTES} THEN 1
+      ELSE 0
+    END AS owner_active
     FROM tasks t
     LEFT JOIN task_dependencies d ON d.task_id = t.id
     LEFT JOIN tasks b ON b.id = d.blocked_by
+    LEFT JOIN agent_presence ap ON ap.owner = t.owner
     WHERE 1=1`;
   const params = [];
 
@@ -43,6 +54,70 @@ router.get('/', async (req, res) => {
  * GET /api/tasks/:id
  * Returns the details for the requested task id (404 when missing).
  */
+router.get('/agent-bindings/escalation-scan', async (req, res) => {
+  const staleMinutes = parseInt(req.query.staleMinutes || '120', 10);
+  try {
+    await db.getDb();
+    const stale = db.all(`
+      SELECT t.id, t.display_id, t.title, t.owner, t.status, t.updated_at,
+        ap.last_seen AS owner_last_seen,
+        CASE
+          WHEN ap.last_seen IS NOT NULL AND (julianday('now') - julianday(ap.last_seen)) * 24 * 60 <= ? THEN 1
+          ELSE 0
+        END AS owner_active,
+        CAST((julianday('now') - julianday(t.updated_at)) * 24 * 60 AS INTEGER) AS minutes_since_task_update
+      FROM tasks t
+      LEFT JOIN agent_presence ap ON ap.owner = t.owner
+      WHERE t.status = 'in-progress'
+        AND ((julianday('now') - julianday(t.updated_at)) * 24 * 60) > ?
+      ORDER BY t.updated_at ASC
+    `, [ASSIGNEE_PRESENCE_TTL_MINUTES, staleMinutes]);
+    res.json({ ok: true, staleMinutes, stale });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+router.get('/agent-bindings', async (_req, res) => {
+  try {
+    await db.getDb();
+    const bindings = db.all(`
+      SELECT owner, session_key, state, last_seen, updated_at,
+        CASE
+          WHEN last_seen IS NOT NULL AND (julianday('now') - julianday(last_seen)) * 24 * 60 <= ? THEN 1
+          ELSE 0
+        END AS active
+      FROM agent_presence
+      ORDER BY owner ASC
+    `, [ASSIGNEE_PRESENCE_TTL_MINUTES]);
+    res.json({ ok: true, bindings, ttl_minutes: ASSIGNEE_PRESENCE_TTL_MINUTES });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+router.post('/agent-bindings/heartbeat', async (req, res) => {
+  const { owner, session_key = null, state = 'online' } = req.body || {};
+  if (!owner) return res.status(400).json({ ok: false, error: 'owner is required' });
+  if (!VALID_OWNERS.includes(owner)) return res.status(400).json({ ok: false, error: 'Invalid owner' });
+  try {
+    await db.getDb();
+    db.run(`
+      INSERT INTO agent_presence (owner, session_key, state, last_seen, updated_at)
+      VALUES (?, ?, ?, datetime('now'), datetime('now'))
+      ON CONFLICT(owner) DO UPDATE SET
+        session_key = excluded.session_key,
+        state = excluded.state,
+        last_seen = datetime('now'),
+        updated_at = datetime('now')
+    `, [owner, session_key, state]);
+    const binding = db.get('SELECT * FROM agent_presence WHERE owner = ?', [owner]);
+    res.json({ ok: true, binding });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
 router.get('/:id', async (req, res) => {
   try {
     await db.getDb();
@@ -89,7 +164,7 @@ router.post('/', async (req, res) => {
   if (!title) return res.status(400).json({ ok: false, error: 'title is required' });
 
   const validStatus   = ['new','backlog','scope-and-design','in-progress','on-hold','for-approval','review','done'];
-  const validOwner    = ['norman','ada','mason','atlas','bard','quinn','juno','malik','priya','elias','rowan','asha','soren','elena','nia','theo','matt','team'];
+  const validOwner    = VALID_OWNERS;
   const validPriority = ['low','medium','high'];
   const validEffort   = ['unknown','small','medium','large'];
 
@@ -202,7 +277,7 @@ router.patch('/:id', async (req, res) => {
 
   // Validate enum fields (OC-103)
   const validStatus   = ['new','backlog','scope-and-design','in-progress','on-hold','for-approval','review','done'];
-  const validOwner    = ['norman','ada','mason','atlas','bard','quinn','juno','malik','priya','elias','rowan','asha','soren','elena','nia','theo','matt','team'];
+  const validOwner    = VALID_OWNERS;
   const validPriority = ['low','medium','high'];
   const validEffort   = ['unknown','small','medium','large'];
 
@@ -228,6 +303,27 @@ router.patch('/:id', async (req, res) => {
     // Fetch full row for field diffing (OC-099 audit log)
     const existing = db.get('SELECT * FROM tasks WHERE id = ?', [req.params.id]);
     if (!existing) return res.status(404).json({ ok: false, error: 'Not found' });
+
+    // OC-141: enforce live assignee binding before entering in-progress
+    const targetStatus = normalizedBody.status !== undefined ? normalizedBody.status : existing.status;
+    const targetOwner = normalizedBody.owner !== undefined ? normalizedBody.owner : existing.owner;
+    if (targetStatus === 'in-progress' && ENFORCED_BINDING_OWNERS.has(targetOwner)) {
+      const binding = db.get(`
+        SELECT owner, last_seen,
+          CASE
+            WHEN last_seen IS NOT NULL AND (julianday('now') - julianday(last_seen)) * 24 * 60 <= ? THEN 1
+            ELSE 0
+          END AS active
+        FROM agent_presence
+        WHERE owner = ?
+      `, [ASSIGNEE_PRESENCE_TTL_MINUTES, targetOwner]);
+      if (!binding || Number(binding.active) !== 1) {
+        return res.status(409).json({
+          ok: false,
+          error: `Cannot move to in-progress: owner '${targetOwner}' has no active live binding heartbeat (TTL ${ASSIGNEE_PRESENCE_TTL_MINUTES}m).`
+        });
+      }
+    }
 
     // Record history entries for each changed field (OC-007.2)
     const author = req.headers['x-author'] || 'system';

@@ -59,8 +59,11 @@ export default function TaskCard({ task, onClick }) {
               <span className={`badge status-badge bg-${STATUS_COLORS[task.status] || 'secondary'} ${(STATUS_META[task.status] || {}).textClass || ''}`}>
                 {(STATUS_META[task.status] || {}).label || task.status}
               </span>
-              <span className={`badge owner-badge owner-${task.owner}`}>
-                {task.owner}
+              <span
+                className={`badge owner-badge owner-${task.owner}`}
+                title={Number(task.owner_active) === 1 ? 'Owner binding active' : 'Owner binding not active'}
+              >
+                {task.owner} {Number(task.owner_active) === 1 ? '🟢' : '⚪'}
               </span>
               <span className="text-muted small" title={`Priority: ${task.priority}`}>
                 {PRIORITY_ICONS[task.priority]}
