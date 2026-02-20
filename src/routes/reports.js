@@ -102,15 +102,19 @@ router.get('/tokens', async (req, res) => {
 
   const params = [];
   let where = 'WHERE 1=1';
+  let resolvedStart = null;
+  let resolvedEnd = null;
 
   if (start || end) {
     if (start) {
       where += ' AND e.ts >= ?';
       params.push(start);
+      resolvedStart = start;
     }
     if (end) {
       where += ' AND e.ts <= ?';
       params.push(end);
+      resolvedEnd = end;
     }
   } else {
     const days = parseWindowDays(window);
@@ -118,6 +122,8 @@ router.get('/tokens', async (req, res) => {
       return res.status(400).json({ ok: false, error: 'Invalid window. Use 7, 30, or 90, or pass start/end.' });
     }
     where += ` AND e.ts >= datetime('now', '-${days} days')`;
+    resolvedStart = new Date(Date.now() - (days * 24 * 60 * 60 * 1000)).toISOString();
+    resolvedEnd = new Date().toISOString();
   }
 
   if (!includeUnlinked) where += ' AND e.task_id IS NOT NULL';
@@ -154,8 +160,16 @@ router.get('/tokens', async (req, res) => {
 
     const byTask = db.all(
       `SELECT e.task_id,
-              COALESCE(t.display_id, 'unlinked') AS task_display_id,
-              COALESCE(t.title, 'Unlinked') AS task_title,
+              CASE
+                WHEN e.task_id IS NULL THEN 'unlinked'
+                WHEN t.display_id IS NULL THEN 'deleted-task'
+                ELSE t.display_id
+              END AS task_display_id,
+              CASE
+                WHEN e.task_id IS NULL THEN 'Unlinked'
+                WHEN t.title IS NULL THEN 'Deleted task'
+                ELSE t.title
+              END AS task_title,
               COALESCE(SUM(e.total_tokens),0) AS total_tokens,
               COALESCE(SUM(e.cost_usd),0) AS cost_usd,
               COUNT(*) AS event_count
@@ -196,7 +210,7 @@ router.get('/tokens', async (req, res) => {
     res.json({
       ok: true,
       window: start || end ? 'custom' : window,
-      filters: { start: start || null, end: end || null, include_unlinked: includeUnlinked },
+      filters: { start: resolvedStart, end: resolvedEnd, include_unlinked: includeUnlinked },
       totals,
       by_agent: byAgent,
       by_task: byTask,

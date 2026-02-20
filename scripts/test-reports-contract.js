@@ -110,6 +110,8 @@ async function main() {
     assert.equal(d1.totals.total_tokens, 180);
     assert.equal(d1.totals.unlinked_events, 1);
     assert.equal(d1.totals.linked_events, 1);
+    assert.ok(typeof d1.filters.start === 'string' && d1.filters.start.length > 0);
+    assert.ok(typeof d1.filters.end === 'string' && d1.filters.end.length > 0);
 
     const { res: r2, data: d2 } = await api(baseUrl, apiKey, '/api/reports/tokens?window=30&include_unlinked=false');
     assert.equal(r2.status, 200);
