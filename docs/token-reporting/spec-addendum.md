@@ -39,6 +39,7 @@
 - `by_task[]`: `{task_id,task_display_id,task_title,total_tokens,cost_usd,event_count}`
 - `by_model[]`: `{model,total_tokens,cost_usd,event_count}` (`model='unknown'` when null)
 - `trend[]`: `{day,total_tokens,cost_usd,event_count}` with `day` normalized to UTC date (`YYYY-MM-DD`)
+- Machine-checkable schema: `docs/token-reporting/reports-response.schema.json`
 
 ## Pricing assumptions (v1)
 - Cost is persisted as **authoritative event value** in `cost_usd` at ingest time.
