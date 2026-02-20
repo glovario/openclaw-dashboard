@@ -1,5 +1,7 @@
 # OC-036.1 Spec Addendum — Token Usage Schema + Attribution Contract
 
+> Finalized: 2026-02-20 (execution run hardening pass)
+
 ## Token fact table
 `token_usage_events`
 
@@ -23,14 +25,14 @@
 - Aggregates always return 0-safe totals (`COALESCE`).
 
 ## `/api/reports/tokens` response contract
-- `ok`
+- `ok`: boolean
 - `window`: `7|30|90|custom`
-- `filters`: `{start,end,include_unlinked}`
-- `totals`: prompt/completion/total tokens + cost + linked/unlinked/event counts
-- `by_agent[]`: `{agent,total_tokens,cost_usd,event_count}`
+- `filters`: `{start,end,include_unlinked}` where `start/end` are UTC ISO strings for resolved window
+- `totals`: `{prompt_tokens,completion_tokens,total_tokens,cost_usd,event_count,linked_events,unlinked_events}`
+- `by_agent[]`: `{agent,total_tokens,cost_usd,event_count}` (`agent='unknown'` when null)
 - `by_task[]`: `{task_id,task_display_id,task_title,total_tokens,cost_usd,event_count}`
-- `by_model[]`: `{model,total_tokens,cost_usd,event_count}`
-- `trend[]`: `{day,total_tokens,cost_usd,event_count}`
+- `by_model[]`: `{model,total_tokens,cost_usd,event_count}` (`model='unknown'` when null)
+- `trend[]`: `{day,total_tokens,cost_usd,event_count}` with `day` normalized to UTC date (`YYYY-MM-DD`)
 
 ## Pricing assumptions (v1)
 - Cost is persisted as **authoritative event value** in `cost_usd` at ingest time.
