@@ -20,6 +20,14 @@ Validate token reporting correctness and edge-case behavior for `/api/reports/to
 7. **UI regression hooks**
    - Ensure response keys stable for cards/charts/tables.
 
+## Automated contract regression (execution-run 2026-02-20)
+- Command: `npm run test:reports-contract`
+- Coverage now automated:
+  - include_unlinked true/false totals reconciliation sanity
+  - stable response arrays (`by_agent`, `by_task`, `by_model`, `trend`)
+  - invalid window rejection (`400`)
+- Current result: ✅ passing on local execution fixture DB.
+
 ## Sign-off evidence expected
 - API response snapshots for each matrix case
 - SQL cross-check query outputs
