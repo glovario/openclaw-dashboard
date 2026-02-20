@@ -326,7 +326,10 @@ router.patch('/:id', async (req, res) => {
       });
     }
 
-    if (targetStatus === 'in-progress' && ENFORCED_BINDING_OWNERS.has(targetOwner)) {
+    const enteringInProgress = existing.status !== 'in-progress' && targetStatus === 'in-progress';
+    const changingInProgressOwner = targetStatus === 'in-progress' && targetOwner !== existing.owner;
+
+    if ((enteringInProgress || changingInProgressOwner) && ENFORCED_BINDING_OWNERS.has(targetOwner)) {
       const binding = db.get(`
         SELECT owner, last_seen,
           CASE
