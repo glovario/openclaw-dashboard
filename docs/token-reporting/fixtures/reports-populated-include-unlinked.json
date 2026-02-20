@@ -1,0 +1,80 @@
+{
+  "ok": true,
+  "window": "30",
+  "filters": {
+    "start": "2026-01-21T06:31:09.884Z",
+    "end": "2026-02-20T06:31:09.884Z",
+    "include_unlinked": true
+  },
+  "totals": {
+    "prompt_tokens": 500,
+    "completion_tokens": 200,
+    "total_tokens": 700,
+    "cost_usd": 0.013999999999999999,
+    "unlinked_events": 1,
+    "linked_events": 2,
+    "event_count": 3
+  },
+  "by_agent": [
+    {
+      "agent": "mason",
+      "total_tokens": 420,
+      "cost_usd": 0.0084,
+      "event_count": 1
+    },
+    {
+      "agent": "juno",
+      "total_tokens": 210,
+      "cost_usd": 0.0042,
+      "event_count": 1
+    },
+    {
+      "agent": "unknown",
+      "total_tokens": 70,
+      "cost_usd": 0.0014,
+      "event_count": 1
+    }
+  ],
+  "by_task": [
+    {
+      "task_id": 1,
+      "task_display_id": "OC-990",
+      "task_title": "Fixture task A",
+      "total_tokens": 420,
+      "cost_usd": 0.0084,
+      "event_count": 1
+    },
+    {
+      "task_id": 2,
+      "task_display_id": "OC-991",
+      "task_title": "Fixture task B",
+      "total_tokens": 210,
+      "cost_usd": 0.0042,
+      "event_count": 1
+    },
+    {
+      "task_id": null,
+      "task_display_id": "unlinked",
+      "task_title": "Unlinked",
+      "total_tokens": 70,
+      "cost_usd": 0.0014,
+      "event_count": 1
+    }
+  ],
+  "by_model": [
+    {
+      "model": "sonnet",
+      "total_tokens": 700,
+      "cost_usd": 0.013999999999999999,
+      "event_count": 3
+    }
+  ],
+  "trend": [
+    {
+      "day": "2026-02-19",
+      "total_tokens": 700,
+      "cost_usd": 0.013999999999999999,
+      "event_count": 3
+    }
+  ]
+}

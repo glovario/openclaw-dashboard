@@ -66,3 +66,9 @@
 - [x] Duplicate ingest replay is ignored via `event_uid` uniqueness
 
 Validation evidence: `node scripts/test-reports-contract.js` (includes deleted-task fallback and dedupe assertions).
+
+Canonical payload fixtures (for UI wiring/docs):
+- `docs/token-reporting/fixtures/reports-populated-include-unlinked.json`
+- `docs/token-reporting/fixtures/reports-populated-linked-only.json`
+- `docs/token-reporting/fixtures/reports-empty-window.json`
+Generated with: `npm run generate:reports-fixtures`

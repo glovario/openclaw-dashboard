@@ -10,7 +10,8 @@
     "build": "cd client && npm run build",
     "seed": "node src/seed.js",
     "test:reports-contract": "node scripts/test-reports-contract.js",
-    "test:reports-reconciliation": "node scripts/test-reports-reconciliation.js"
+    "test:reports-reconciliation": "node scripts/test-reports-reconciliation.js",
+    "generate:reports-fixtures": "node scripts/generate-reports-fixtures.js"
   },
   "dependencies": {
     "express": "^4.18.2",
