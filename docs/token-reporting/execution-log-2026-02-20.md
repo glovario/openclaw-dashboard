@@ -30,3 +30,16 @@
 2. Conclusion unchanged:
    - API path still resolving to SPA HTML, not JSON.
    - OC-118 remains the hard dependency gate for OC-119/120/121/123 and parent OC-036.
+
+## 01:09 rerun (Europe/London)
+1. Re-ran contract validator after backend route fixes landed:
+   - `API_KEY=*** DASHBOARD_URL=http://localhost:3420 node scripts/validate-token-reports.js`
+   - Result: ✅ pass for 7/30/90-day windows and `include_unlinked=false` contract checks.
+
+2. Re-ran WhatsApp drift detector against live OpenClaw config:
+   - `node scripts/check-whatsapp-binding-drift.js /home/matt/.openclaw/openclaw.json`
+   - Result: ✅ no drift (`pluginEnabled=true`, `channelEnabled=false`, `whatsappBindingCount=0`).
+
+3. Current blocker profile:
+   - Data volume in `token_usage_events` is currently 0 across windows, so QA/UI work can validate shape/empty states but cannot yet reconcile non-zero totals.
+   - Dependency owner for non-zero validation data: **Mason (OC-117 ingestion path)**.
