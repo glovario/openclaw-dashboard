@@ -167,6 +167,24 @@ async function main() {
     assert.equal(r4.status, 400);
     assert.equal(d4.ok, false);
 
+    const emptyStart = new Date(Date.now() - (365 * 86400000)).toISOString();
+    const emptyEnd = new Date(Date.now() - (300 * 86400000)).toISOString();
+    const { res: r5, data: d5 } = await api(
+      baseUrl,
+      apiKey,
+      `/api/reports/tokens?start=${encodeURIComponent(emptyStart)}&end=${encodeURIComponent(emptyEnd)}&include_unlinked=true`
+    );
+    assert.equal(r5.status, 200);
+    assert.equal(d5.ok, true);
+    assert.equal(d5.window, 'custom');
+    assert.equal(d5.totals.event_count, 0);
+    assert.equal(d5.totals.total_tokens, 0);
+    assert.equal(d5.totals.cost_usd, 0);
+    assert.equal(d5.by_agent.length, 0);
+    assert.equal(d5.by_task.length, 0);
+    assert.equal(d5.by_model.length, 0);
+    assert.equal(d5.trend.length, 0);
+
     console.log('✅ reports contract tests passed');
   } finally {
     server.kill('SIGTERM');
