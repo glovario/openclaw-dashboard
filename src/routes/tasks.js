@@ -5,7 +5,7 @@ const db = require('../db');
 const VALID_OWNERS = ['norman','ada','mason','atlas','bard','quinn','juno','malik','priya','elias','rowan','asha','soren','elena','nia','theo','matt','team'];
 const ENFORCED_BINDING_OWNERS = new Set(VALID_OWNERS.filter(o => !['matt', 'team'].includes(o)));
 const ASSIGNEE_PRESENCE_TTL_MINUTES = parseInt(process.env.ASSIGNEE_PRESENCE_TTL_MINUTES || '30', 10);
-const TRACEABILITY_STATUSES = new Set(['review', 'for-approval', 'done']);
+const TRACEABILITY_STATUSES = new Set(['review', 'done']);
 
 function hasTraceabilityUrl(v) {
   if (v === null || v === undefined) return false;
@@ -181,7 +181,7 @@ router.post('/', async (req, res) => {
   if (!validPriority.includes(priority))           return res.status(400).json({ ok: false, error: 'Invalid priority' });
   if (!validEffort.includes(estimated_token_effort)) return res.status(400).json({ ok: false, error: 'Invalid estimated_token_effort' });
   if (TRACEABILITY_STATUSES.has(status) && !hasTraceabilityUrl(github_url)) {
-    return res.status(400).json({ ok: false, error: 'github_url is required (or N/A) when creating tasks in review/for-approval/done.' });
+    return res.status(400).json({ ok: false, error: 'github_url is required (or N/A) when creating tasks in review/done.' });
   }
 
   try {

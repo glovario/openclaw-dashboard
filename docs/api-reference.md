@@ -34,7 +34,7 @@ This document supplements the `README.md` section about the OpenClaw Dashboard A
 - **Body:** Partial object containing only fields to change.
 - **Behavior:** Invalid enums result in `400`. Each actual change inserts a `task_history` row and the handler returns the updated task.
 - **OC-141 enforcement:** moving a task to `in-progress` for named agents now requires an active assignee heartbeat binding; otherwise API returns `409` with a clear binding error.
-- **OC-143 enforcement:** moving/creating tasks in `review`, `for-approval`, or `done` requires `github_url` (or explicit `N/A`) for traceability.
+- **OC-143 enforcement:** moving/creating tasks in `review` or `done` requires `github_url` (or explicit `N/A`) for traceability. `for-approval` does not require `github_url`.
 
 ### `DELETE /api/tasks/:id`
 - **Purpose:** Deletes the task and cascades history/comments/dependencies.
