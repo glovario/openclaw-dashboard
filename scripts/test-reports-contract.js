@@ -185,6 +185,20 @@ async function main() {
     assert.equal(d5.by_model.length, 0);
     assert.equal(d5.trend.length, 0);
 
+    const { res: r6, data: d6 } = await api(baseUrl, apiKey, '/api/reports/tokens?start=not-a-date');
+    assert.equal(r6.status, 400);
+    assert.equal(d6.ok, false);
+
+    const invalidStart = new Date(Date.now() - (6 * 60 * 60 * 1000)).toISOString();
+    const invalidEnd = new Date(Date.now() - (24 * 60 * 60 * 1000)).toISOString();
+    const { res: r7, data: d7 } = await api(
+      baseUrl,
+      apiKey,
+      `/api/reports/tokens?start=${encodeURIComponent(invalidStart)}&end=${encodeURIComponent(invalidEnd)}`
+    );
+    assert.equal(r7.status, 400);
+    assert.equal(d7.ok, false);
+
     console.log('✅ reports contract tests passed');
   } finally {
     server.kill('SIGTERM');

@@ -106,6 +106,19 @@ router.get('/tokens', async (req, res) => {
   let resolvedEnd = null;
 
   if (start || end) {
+    const parsedStart = start ? Date.parse(start) : null;
+    const parsedEnd = end ? Date.parse(end) : null;
+
+    if (start && Number.isNaN(parsedStart)) {
+      return res.status(400).json({ ok: false, error: 'Invalid start. Use ISO-8601 timestamp.' });
+    }
+    if (end && Number.isNaN(parsedEnd)) {
+      return res.status(400).json({ ok: false, error: 'Invalid end. Use ISO-8601 timestamp.' });
+    }
+    if (start && end && parsedStart > parsedEnd) {
+      return res.status(400).json({ ok: false, error: 'Invalid range. start must be <= end.' });
+    }
+
     if (start) {
       where += ' AND e.ts >= ?';
       params.push(start);
