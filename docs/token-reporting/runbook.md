@@ -23,3 +23,11 @@
 
 ## Response guarantees
 - Endpoint returns zero-safe values and empty arrays (never missing keys) for empty windows.
+
+## Fixture payloads for QA/UI
+- Populated + include unlinked: `docs/token-reporting/fixtures/reports-populated-include-unlinked.json`
+- Populated + linked only: `docs/token-reporting/fixtures/reports-populated-linked-only.json`
+- Empty custom window: `docs/token-reporting/fixtures/reports-empty-window.json`
+
+Refresh fixtures after contract changes:
+- `npm run generate:reports-fixtures`
