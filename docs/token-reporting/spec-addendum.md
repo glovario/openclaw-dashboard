@@ -31,6 +31,18 @@
 - `by_model[]`: `{model,total_tokens,cost_usd,event_count}`
 - `trend[]`: `{day,total_tokens,cost_usd,event_count}`
 
+## Pricing assumptions (v1)
+- Cost is persisted as **authoritative event value** in `cost_usd` at ingest time.
+- No historical cost re-pricing in API queries.
+- If provider cost is unknown at ingest, store `cost_usd = 0` and add reason in `metadata_json`.
+
+## Attribution linkage rules (v1)
+- `task_id` must reference an existing task at write time, or be `NULL`.
+- Deleted tasks are treated as historical denormalization risk; reporting should LEFT JOIN tasks and fall back to:
+  - `task_display_id = 'deleted-task'`
+  - `task_title = 'Deleted task'`
+- Duplicate provider events should be prevented in ingestion path (idempotency key in metadata, implementation-specific).
+
 ## Acceptance checklist
 - [ ] Migration creates `token_usage_events` + indexes
 - [ ] Endpoint returns stable shape even when empty
@@ -38,3 +50,5 @@
 - [ ] Custom `start/end` works
 - [ ] `include_unlinked=false` excludes null `task_id` events
 - [ ] Top lists sorted by `cost_usd DESC`, then `total_tokens DESC`
+- [ ] Deleted task linkage does not break aggregation responses
+- [ ] Unknown-cost events are represented with `cost_usd=0` + metadata reason
