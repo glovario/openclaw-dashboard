@@ -122,9 +122,20 @@ async function main() {
     assert.ok(Array.isArray(d2.by_model));
     assert.ok(Array.isArray(d2.trend));
 
-    const { res: r3, data: d3 } = await api(baseUrl, apiKey, '/api/reports/tokens?window=14');
-    assert.equal(r3.status, 400);
-    assert.equal(d3.ok, false);
+    const start = new Date(Date.now() - (2 * 86400000)).toISOString();
+    const end = new Date(Date.now() - (12 * 60 * 60 * 1000)).toISOString();
+    const { res: r3, data: d3 } = await api(
+      baseUrl,
+      apiKey,
+      `/api/reports/tokens?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&include_unlinked=true`
+    );
+    assert.equal(r3.status, 200);
+    assert.equal(d3.window, 'custom');
+    assert.equal(d3.totals.total_tokens, 180);
+
+    const { res: r4, data: d4 } = await api(baseUrl, apiKey, '/api/reports/tokens?window=14');
+    assert.equal(r4.status, 400);
+    assert.equal(d4.ok, false);
 
     console.log('✅ reports contract tests passed');
   } finally {

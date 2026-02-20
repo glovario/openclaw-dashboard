@@ -27,9 +27,10 @@ Validate token reporting correctness and edge-case behavior for `/api/reports/to
 - Coverage now automated:
   - ingestion endpoint write + dedupe behavior
   - include_unlinked true/false totals reconciliation sanity
+  - custom `start/end` window path (`window=custom`) with deterministic totals
   - stable response arrays (`by_agent`, `by_task`, `by_model`, `trend`)
   - invalid window rejection (`400`)
-- Current result: ✅ passing on local execution fixture DB.
+- Current result: ✅ passing on local execution fixture DB (re-run 2026-02-20 05:19 Europe/London).
 
 ## Sign-off evidence expected
 - API response snapshots for each matrix case
