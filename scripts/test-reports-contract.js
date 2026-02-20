@@ -54,6 +54,33 @@ async function main() {
   const task = db.get(`SELECT id FROM tasks WHERE display_id = 'OC-999'`);
   const taskId = task.id;
 
+  db.insert(
+    `INSERT INTO tasks
+      (title, description, status, owner, priority, estimated_token_effort, display_id, created_by)
+     VALUES ('Deleted linkage seed', 'used to validate deleted-task fallback', 'done', 'ada', 'low', 'small', 'OC-998', 'contract-test')`
+  );
+  const deletedSeed = db.get(`SELECT id FROM tasks WHERE display_id = 'OC-998'`);
+  const deletedTaskId = deletedSeed.id;
+  db.run(`DELETE FROM tasks WHERE id = ?`, [deletedTaskId]);
+  db.insert(
+    `INSERT INTO token_usage_events
+      (ts, source, task_id, agent, model, prompt_tokens, completion_tokens, total_tokens, cost_usd, event_uid, metadata_json)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      new Date(Date.now() - 86400000).toISOString(),
+      'contract-test',
+      deletedTaskId,
+      'ada',
+      'sonnet',
+      40,
+      20,
+      60,
+      0.0012,
+      'evt-deleted-task-1',
+      JSON.stringify({ kind: 'deleted-task-fallback' }),
+    ]
+  );
+
   const server = spawn(process.execPath, ['src/server.js'], {
     cwd: repoRoot,
     env,
@@ -107,20 +134,23 @@ async function main() {
     const { res: r1, data: d1 } = await api(baseUrl, apiKey, '/api/reports/tokens?window=30&include_unlinked=true');
     assert.equal(r1.status, 200);
     assert.equal(d1.ok, true);
-    assert.equal(d1.totals.total_tokens, 180);
+    assert.equal(d1.totals.total_tokens, 240);
     assert.equal(d1.totals.unlinked_events, 1);
-    assert.equal(d1.totals.linked_events, 1);
+    assert.equal(d1.totals.linked_events, 2);
     assert.ok(typeof d1.filters.start === 'string' && d1.filters.start.length > 0);
     assert.ok(typeof d1.filters.end === 'string' && d1.filters.end.length > 0);
 
     const { res: r2, data: d2 } = await api(baseUrl, apiKey, '/api/reports/tokens?window=30&include_unlinked=false');
     assert.equal(r2.status, 200);
-    assert.equal(d2.totals.total_tokens, 150);
+    assert.equal(d2.totals.total_tokens, 210);
     assert.equal(d2.totals.unlinked_events, 0);
     assert.ok(Array.isArray(d2.by_agent));
     assert.ok(Array.isArray(d2.by_task));
     assert.ok(Array.isArray(d2.by_model));
     assert.ok(Array.isArray(d2.trend));
+    const deletedTaskRow = d2.by_task.find((row) => row.task_display_id === 'deleted-task');
+    assert.ok(deletedTaskRow, 'expected deleted-task fallback row in by_task');
+    assert.equal(deletedTaskRow.task_title, 'Deleted task');
 
     const start = new Date(Date.now() - (2 * 86400000)).toISOString();
     const end = new Date(Date.now() - (12 * 60 * 60 * 1000)).toISOString();
@@ -131,7 +161,7 @@ async function main() {
     );
     assert.equal(r3.status, 200);
     assert.equal(d3.window, 'custom');
-    assert.equal(d3.totals.total_tokens, 180);
+    assert.equal(d3.totals.total_tokens, 240);
 
     const { res: r4, data: d4 } = await api(baseUrl, apiKey, '/api/reports/tokens?window=14');
     assert.equal(r4.status, 400);

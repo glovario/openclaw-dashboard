@@ -55,12 +55,14 @@
 - If `event_uid` is unavailable, fallback dedupe key MAY be stored in `metadata_json.idempotency_key`.
 
 ## Acceptance checklist
-- [ ] Migration creates `token_usage_events` + indexes
-- [ ] Endpoint returns stable shape even when empty
-- [ ] Window filters (7/30/90) work
-- [ ] Custom `start/end` works
-- [ ] `include_unlinked=false` excludes null `task_id` events
-- [ ] Top lists sorted by `cost_usd DESC`, then `total_tokens DESC`
-- [ ] Deleted task linkage does not break aggregation responses
-- [ ] Unknown-cost events are represented with `cost_usd=0` + metadata reason
-- [ ] Duplicate ingest replay is ignored via `event_uid` uniqueness
+- [x] Migration creates `token_usage_events` + indexes
+- [x] Endpoint returns stable shape even when empty
+- [x] Window filters (7/30/90) work
+- [x] Custom `start/end` works
+- [x] `include_unlinked=false` excludes null `task_id` events
+- [x] Top lists sorted by `cost_usd DESC`, then `total_tokens DESC`
+- [x] Deleted task linkage does not break aggregation responses
+- [x] Unknown-cost events are represented with `cost_usd=0` + metadata reason
+- [x] Duplicate ingest replay is ignored via `event_uid` uniqueness
+
+Validation evidence: `node scripts/test-reports-contract.js` (includes deleted-task fallback and dedupe assertions).
