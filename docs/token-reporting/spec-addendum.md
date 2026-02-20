@@ -24,6 +24,12 @@
 - `/api/reports/tokens` supports `include_unlinked=true|false`.
 - Aggregates always return 0-safe totals (`COALESCE`).
 
+## Ingestion contract
+- POST `/api/reports/tokens/events` accepts one event object or `{ events: [...] }`.
+- Task linkage is strict: `task_id` must reference existing `tasks.id` or be `null`.
+- Idempotency: duplicate `event_uid` writes are deduped (reported as `deduped` count).
+- Response: `{ok, inserted, deduped, rejected[]}` where rejected includes per-event validation reason.
+
 ## `/api/reports/tokens` response contract
 - `ok`: boolean
 - `window`: `7|30|90|custom`

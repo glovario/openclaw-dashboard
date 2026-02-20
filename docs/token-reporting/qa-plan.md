@@ -19,10 +19,13 @@ Validate token reporting correctness and edge-case behavior for `/api/reports/to
    - by_agent/by_task/by_model ordered by cost then tokens.
 7. **UI regression hooks**
    - Ensure response keys stable for cards/charts/tables.
+8. **Ingestion idempotency**
+   - POST duplicate `event_uid` payload twice and verify second call returns deduped count without adding rows.
 
 ## Automated contract regression (execution-run 2026-02-20)
 - Command: `npm run test:reports-contract`
 - Coverage now automated:
+  - ingestion endpoint write + dedupe behavior
   - include_unlinked true/false totals reconciliation sanity
   - stable response arrays (`by_agent`, `by_task`, `by_model`, `trend`)
   - invalid window rejection (`400`)

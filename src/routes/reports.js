@@ -10,6 +10,92 @@ function parseWindowDays(windowValue) {
   return null;
 }
 
+function clampInt(value) {
+  const n = Number.parseInt(value, 10);
+  return Number.isFinite(n) && n >= 0 ? n : 0;
+}
+
+function clampFloat(value) {
+  const n = Number.parseFloat(value);
+  return Number.isFinite(n) && n >= 0 ? n : 0;
+}
+
+router.post('/tokens/events', async (req, res) => {
+  const payload = req.body;
+  const events = Array.isArray(payload?.events) ? payload.events : [payload];
+
+  if (!events.length || events.some((event) => !event || typeof event !== 'object')) {
+    return res.status(400).json({ ok: false, error: 'Body must be an event object or { events: [...] }' });
+  }
+
+  try {
+    await db.getDb();
+
+    let inserted = 0;
+    let deduped = 0;
+    const rejected = [];
+
+    for (let i = 0; i < events.length; i += 1) {
+      const event = events[i];
+      const source = event.source || 'unknown';
+      const taskId = event.task_id == null ? null : Number.parseInt(event.task_id, 10);
+
+      if (taskId != null && Number.isNaN(taskId)) {
+        rejected.push({ index: i, reason: 'task_id must be integer or null' });
+        continue;
+      }
+
+      if (taskId != null) {
+        const task = db.get('SELECT id FROM tasks WHERE id = ?', [taskId]);
+        if (!task) {
+          rejected.push({ index: i, reason: `task_id ${taskId} does not exist` });
+          continue;
+        }
+      }
+
+      const promptTokens = clampInt(event.prompt_tokens);
+      const completionTokens = clampInt(event.completion_tokens);
+      const totalTokens = event.total_tokens == null
+        ? promptTokens + completionTokens
+        : clampInt(event.total_tokens);
+      const costUsd = clampFloat(event.cost_usd);
+
+      try {
+        db.insert(
+          `INSERT INTO token_usage_events
+            (ts, source, task_id, agent, model, prompt_tokens, completion_tokens, total_tokens, cost_usd, event_uid, metadata_json)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            event.ts || new Date().toISOString(),
+            source,
+            taskId,
+            event.agent || null,
+            event.model || null,
+            promptTokens,
+            completionTokens,
+            totalTokens,
+            costUsd,
+            event.event_uid || null,
+            event.metadata_json ? JSON.stringify(event.metadata_json) : null,
+          ]
+        );
+        inserted += 1;
+      } catch (err) {
+        if (String(err.message || err).includes('UNIQUE constraint failed: token_usage_events.event_uid')) {
+          deduped += 1;
+          continue;
+        }
+        throw err;
+      }
+    }
+
+    const status = rejected.length ? 207 : 200;
+    return res.status(status).json({ ok: true, inserted, deduped, rejected });
+  } catch (e) {
+    return res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
 router.get('/tokens', async (req, res) => {
   const { window = '30', start, end, include_unlinked = 'true' } = req.query;
   const includeUnlinked = String(include_unlinked).toLowerCase() !== 'false';

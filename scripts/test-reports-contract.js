@@ -20,8 +20,12 @@ async function waitForServer(baseUrl, headers, timeoutMs = 12000) {
   throw new Error('Server did not become ready in time');
 }
 
-async function api(baseUrl, key, endpoint) {
-  const res = await fetch(`${baseUrl}${endpoint}`, { headers: { 'X-API-Key': key } });
+async function api(baseUrl, key, endpoint, method = 'GET', body) {
+  const res = await fetch(`${baseUrl}${endpoint}`, {
+    method,
+    headers: { 'X-API-Key': key, 'Content-Type': 'application/json' },
+    body: body == null ? undefined : JSON.stringify(body),
+  });
   const data = await res.json();
   return { res, data };
 }
@@ -49,17 +53,6 @@ async function main() {
   );
   const task = db.get(`SELECT id FROM tasks WHERE display_id = 'OC-999'`);
   const taskId = task.id;
-  db.insert(
-    `INSERT INTO token_usage_events
-      (ts, source, task_id, agent, model, prompt_tokens, completion_tokens, total_tokens, cost_usd, metadata_json)
-      VALUES (datetime('now', '-1 day'), 'contract-test', ?, 'malik', 'sonnet', 100, 50, 150, 0.003, '{"kind":"linked"}')`,
-    [taskId]
-  );
-  db.insert(
-    `INSERT INTO token_usage_events
-      (ts, source, task_id, agent, model, prompt_tokens, completion_tokens, total_tokens, cost_usd, metadata_json)
-      VALUES (datetime('now', '-1 day'), 'contract-test', NULL, 'unknown', 'sonnet', 20, 10, 30, 0.0006, '{"kind":"unlinked"}')`
-  );
 
   const server = spawn(process.execPath, ['src/server.js'], {
     cwd: repoRoot,
@@ -67,12 +60,49 @@ async function main() {
     stdio: 'pipe',
   });
 
-  let stderr = '';
-  server.stderr.on('data', (d) => { stderr += d.toString(); });
-
-  const baseUrl = `http://127.0.0.1:${port}`;
   try {
-    await waitForServer(baseUrl, { 'X-API-Key': apiKey });
+    await waitForServer(`http://127.0.0.1:${port}`, { 'X-API-Key': apiKey });
+    const baseUrl = `http://127.0.0.1:${port}`;
+
+    const ingestPayload = {
+      events: [
+        {
+          ts: new Date(Date.now() - 86400000).toISOString(),
+          source: 'contract-test',
+          task_id: taskId,
+          agent: 'malik',
+          model: 'sonnet',
+          prompt_tokens: 100,
+          completion_tokens: 50,
+          total_tokens: 150,
+          cost_usd: 0.003,
+          event_uid: 'evt-linked-1',
+          metadata_json: { kind: 'linked' },
+        },
+        {
+          ts: new Date(Date.now() - 86400000).toISOString(),
+          source: 'contract-test',
+          task_id: null,
+          agent: 'unknown',
+          model: 'sonnet',
+          prompt_tokens: 20,
+          completion_tokens: 10,
+          total_tokens: 30,
+          cost_usd: 0.0006,
+          event_uid: 'evt-unlinked-1',
+          metadata_json: { kind: 'unlinked' },
+        },
+      ],
+    };
+
+    const { res: ingestRes, data: ingestData } = await api(baseUrl, apiKey, '/api/reports/tokens/events', 'POST', ingestPayload);
+    assert.equal(ingestRes.status, 200);
+    assert.equal(ingestData.inserted, 2);
+
+    const { res: dedupeRes, data: dedupeData } = await api(baseUrl, apiKey, '/api/reports/tokens/events', 'POST', ingestPayload);
+    assert.equal(dedupeRes.status, 200);
+    assert.equal(dedupeData.inserted, 0);
+    assert.equal(dedupeData.deduped, 2);
 
     const { res: r1, data: d1 } = await api(baseUrl, apiKey, '/api/reports/tokens?window=30&include_unlinked=true');
     assert.equal(r1.status, 200);
