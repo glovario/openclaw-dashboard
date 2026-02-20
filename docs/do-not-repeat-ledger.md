@@ -8,3 +8,4 @@
   - `node scripts/check-whatsapp-binding-drift.js /home/matt/.openclaw/openclaw.json`
 - **Expected result:** `{ "ok": true, ... }`
 - **If drift found:** either re-enable plugin + valid account setup, or remove stale WhatsApp channel/binding references and migrate cron delivery to Telegram.
+- **Latest verification:** 2026-02-20 01:49 Europe/London (`drift=[]`, plugin on, channel off, no WhatsApp bindings).
