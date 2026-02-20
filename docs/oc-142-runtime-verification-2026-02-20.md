@@ -25,3 +25,7 @@ Interpretation:
 - No active plugin/channel/binding drift currently detected.
 - OC-142 implementation action this cycle is verification + evidence capture.
 - Remaining dependency: decide whether task closure should include an automated pre-restart check hook (owner: Atlas).
+
+## 00:41 rerun (Europe/London)
+Re-ran the same drift check command; output remained clean (`drift: []`).
+This confirms config remains in a safe intermediate state (plugin enabled, channel disabled, no whatsapp bindings).

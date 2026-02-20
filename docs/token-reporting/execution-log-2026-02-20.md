@@ -21,3 +21,12 @@
 4. OC-120 QA reconciliation run
 5. OC-121 Reports tab UI integration
 6. OC-123 docs/runbook finalization
+
+## 00:40 rerun (Europe/London)
+1. Re-ran contract validator:
+   - `API_KEY=*** node scripts/validate-token-reports.js`
+   - Result: still failing with `Unexpected token < in JSON at position 0`
+
+2. Conclusion unchanged:
+   - API path still resolving to SPA HTML, not JSON.
+   - OC-118 remains the hard dependency gate for OC-119/120/121/123 and parent OC-036.
