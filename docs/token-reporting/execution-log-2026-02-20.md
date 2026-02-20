@@ -43,3 +43,15 @@
 3. Current blocker profile:
    - Data volume in `token_usage_events` is currently 0 across windows, so QA/UI work can validate shape/empty states but cannot yet reconcile non-zero totals.
    - Dependency owner for non-zero validation data: **Mason (OC-117 ingestion path)**.
+
+## 01:19 rerun (Europe/London)
+1. Re-ran contract validator with API key set:
+   - `OPENCLAW_DASHBOARD_API_KEY=*** node scripts/validate-token-reports.js`
+   - Result: ✅ all checks pass (7/30/90 windows + include_unlinked toggle); event_count remains 0.
+
+2. Refreshed dependency map for OC-036 subtree via `/api/tasks/:id/dependencies`.
+   - Confirmed hard chain: OC-116 -> OC-117 -> OC-118 -> (OC-119, OC-120, OC-121) and parent OC-036.
+
+3. Concrete advancement this cycle:
+   - Added execution evidence + blocker ownership matrix in `docs/token-reporting/in-progress-blocker-matrix-2026-02-20.md`.
+   - Posted per-task progress comments with blocker owner + next-unblock action + ETA window.
