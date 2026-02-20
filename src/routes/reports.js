@@ -10,6 +10,87 @@ function parseWindowDays(windowValue) {
   return null;
 }
 
+function nonNegativeInt(value, fallback = 0) {
+  const n = Number(value);
+  if (!Number.isFinite(n) || n < 0) return fallback;
+  return Math.round(n);
+}
+
+function nonNegativeFloat(value, fallback = 0) {
+  const n = Number(value);
+  if (!Number.isFinite(n) || n < 0) return fallback;
+  return n;
+}
+
+router.post('/tokens/events', async (req, res) => {
+  const {
+    ts,
+    source = 'manual',
+    task_id = null,
+    task_display_id,
+    agent = null,
+    model = null,
+    prompt_tokens = 0,
+    completion_tokens = 0,
+    total_tokens,
+    cost_usd = 0,
+    metadata = null,
+  } = req.body || {};
+
+  try {
+    await db.getDb();
+
+    let resolvedTaskId = task_id;
+    if ((resolvedTaskId === null || resolvedTaskId === undefined || resolvedTaskId === '') && task_display_id) {
+      const task = db.get('SELECT id FROM tasks WHERE display_id = ?', [String(task_display_id)]);
+      if (!task) {
+        return res.status(400).json({ ok: false, error: `Unknown task_display_id: ${task_display_id}` });
+      }
+      resolvedTaskId = task.id;
+    }
+
+    if (resolvedTaskId !== null && resolvedTaskId !== undefined && resolvedTaskId !== '') {
+      const task = db.get('SELECT id FROM tasks WHERE id = ?', [Number(resolvedTaskId)]);
+      if (!task) {
+        return res.status(400).json({ ok: false, error: `Unknown task_id: ${resolvedTaskId}` });
+      }
+      resolvedTaskId = Number(resolvedTaskId);
+    } else {
+      resolvedTaskId = null;
+    }
+
+    const prompt = nonNegativeInt(prompt_tokens, 0);
+    const completion = nonNegativeInt(completion_tokens, 0);
+    const total = total_tokens === undefined || total_tokens === null
+      ? prompt + completion
+      : nonNegativeInt(total_tokens, prompt + completion);
+
+    const eventId = db.insert(
+      `INSERT INTO token_usage_events (
+        ts, source, task_id, agent, model,
+        prompt_tokens, completion_tokens, total_tokens, cost_usd, metadata_json
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        ts || new Date().toISOString(),
+        String(source || 'manual'),
+        resolvedTaskId,
+        agent ? String(agent) : null,
+        model ? String(model) : null,
+        prompt,
+        completion,
+        total,
+        nonNegativeFloat(cost_usd, 0),
+        metadata ? JSON.stringify(metadata) : null,
+      ]
+    );
+
+    const event = db.get('SELECT * FROM token_usage_events WHERE id = ?', [eventId]);
+    res.status(201).json({ ok: true, event });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
 router.get('/tokens', async (req, res) => {
   const { window = '30', start, end, include_unlinked = 'true' } = req.query;
   const includeUnlinked = String(include_unlinked).toLowerCase() !== 'false';

@@ -84,6 +84,23 @@ This document supplements the `README.md` section about the OpenClaw Dashboard A
 - **Response:** `201 { ok: true, comment }`.
 
 
+## Reports endpoints (`/api/reports`)
+
+### `GET /api/reports/tokens`
+- **Purpose:** Aggregated token/cost reporting over a rolling window (`7|30|90`) or custom `start/end` timestamps.
+- **Query params:** `window`, `start`, `end`, `include_unlinked` (`true` default).
+- **Response:** `{ ok, window, filters, totals, by_agent, by_task, by_model, trend }`.
+
+### `POST /api/reports/tokens/events`
+- **Purpose:** Persist a token-usage fact row for downstream reporting/QA.
+- **Body:** `{ ts?, source?, task_id?, task_display_id?, agent?, model?, prompt_tokens?, completion_tokens?, total_tokens?, cost_usd?, metadata? }`.
+- **Behavior:**
+  - Resolves `task_display_id` to `task_id` when `task_id` is omitted.
+  - Validates referenced task exists when task linkage is provided.
+  - Defaults `total_tokens = prompt_tokens + completion_tokens` when omitted.
+  - Stores metadata as JSON string in `metadata_json`.
+- **Response:** `201 { ok: true, event }`.
+
 ## System endpoints
 
 ### `GET /api/health`
