@@ -13,6 +13,7 @@
 - `completion_tokens` INTEGER >= 0
 - `total_tokens` INTEGER >= 0
 - `cost_usd` REAL >= 0
+- `event_uid` TEXT nullable UNIQUE (provider/source dedupe key)
 - `metadata_json` TEXT nullable JSON blob for provider/raw attribution details
 
 ## Attribution contract
@@ -41,7 +42,8 @@
 - Deleted tasks are treated as historical denormalization risk; reporting should LEFT JOIN tasks and fall back to:
   - `task_display_id = 'deleted-task'`
   - `task_title = 'Deleted task'`
-- Duplicate provider events should be prevented in ingestion path (idempotency key in metadata, implementation-specific).
+- Duplicate provider events should be prevented in ingestion path using `event_uid` unique key where available.
+- If `event_uid` is unavailable, fallback dedupe key MAY be stored in `metadata_json.idempotency_key`.
 
 ## Acceptance checklist
 - [ ] Migration creates `token_usage_events` + indexes
@@ -52,3 +54,4 @@
 - [ ] Top lists sorted by `cost_usd DESC`, then `total_tokens DESC`
 - [ ] Deleted task linkage does not break aggregation responses
 - [ ] Unknown-cost events are represented with `cost_usd=0` + metadata reason
+- [ ] Duplicate ingest replay is ignored via `event_uid` uniqueness
